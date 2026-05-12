@@ -257,6 +257,12 @@
         <h1>🎮 Donkey Kong - High Scores</h1>
         <p class="subtitle">View and manage your game scores</p>
 
+        <!-- Navigation Tabs -->
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #667eea;">
+            <a href="/ui/high-scores" style="padding: 10px 20px; color: #764ba2; font-weight: bold; text-decoration: none; border-bottom: 3px solid #764ba2; margin-bottom: -2px;">📊 High Scores</a>
+            <a href="/ui/game-results" style="padding: 10px 20px; color: #667eea; font-weight: bold; text-decoration: none;">🎯 Game Results</a>
+        </div>
+
         <!-- Stats -->
         <div class="stats">
             <div class="stat-card">
@@ -277,6 +283,7 @@
         <div class="controls">
             <button class="btn btn-primary" onclick="location.reload()">🔄 Refresh</button>
             <button class="btn btn-warning" onclick="confirmDeleteAll()">🗑️ Delete All</button>
+            <a href="/ui/game-results" class="btn btn-primary">🎯 View Game Results</a>
         </div>
 
         <!-- High Scores Table -->
