@@ -30,7 +30,5 @@ public class GameResult {
 
     @JsonIgnore
     @ManyToOne
-    @JoinColumn(name = "high_score_id")
-    private HighScore highScore;
+    private Player player;
 }
-
