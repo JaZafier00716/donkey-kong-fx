@@ -20,6 +20,10 @@ import static java.lang.Math.sqrt;
 
 @Log4j2
 public class Player extends MovableGameObject {
+    public static final int STARTING_LIVES = 5;
+    /** How far below the feet (design units) a barrel still counts as "jumped over". */
+    private static final double JUMP_OVER_REACH = 24;
+
     @Setter
     @Getter
     private String playerName;
@@ -63,16 +67,13 @@ public class Player extends MovableGameObject {
                         226
                 ),
                 new MovableType(
-                        rd,
                         0,
                         20,
                         20,
                         100,
-                        sqrt(2 * 20 * height), // sqrt(2*gravity*(player_height-0.5*platform_height))*scale
+                        sqrt(2 * 20 * height), // sqrt(2 * gravity * jump height); the jump rises 32 design units
                         true,
-                        true,
-                        new Point2D(0, 0)
-                ));
+                        true));
         this.playerName = playerName;
         this.frameIndex = 0;
         this.lastFrameIndex = 0;
@@ -83,7 +84,7 @@ public class Player extends MovableGameObject {
         this.climb_phase2 = new AnimationData("/images/player/climb_phase2.png", 5, 1);
         this.death = new AnimationData("/images/player/death.png", 5, 1);
         this.playerState = PlayerState.IDLE;
-        this.health = new Health(rd, 10, new Point2D(150, 10), 5);
+        this.health = new Health(rd, 10, new Point2D(150, 10), STARTING_LIVES);
         this.health.addListener(new HealthListener() {
             @Override
             public void onLivesChanged(int newLives) {
@@ -163,7 +164,7 @@ public class Player extends MovableGameObject {
                 getPosition().getX() * rd.getScale() + currentAnim.getSize().getWidth() * rd.getScale() / 4,
                 getPosition().getY() * rd.getScale() + currentAnim.getSize().getHeight() * rd.getScale(),
                 currentAnim.getSize().getWidth() * rd.getScale() / 2,
-                rd.getHeight()*rd.getScale()
+                JUMP_OVER_REACH * rd.getScale()
         );
     }
 
@@ -172,10 +173,12 @@ public class Player extends MovableGameObject {
         if(playerState == PlayerState.DEATH){
             return; // no further collisions when dead
         }
-        if(another instanceof Token t) {
-            log.info("Token collected by player {}", playerName);
-            score += 100;
-            t.setToBeRemoved(true);
+        if (another instanceof Token t) {
+            if (!t.isToBeRemoved()) { // the token stays in the level until the end of the frame
+                log.info("Token collected by player {}", playerName);
+                score += 100;
+                t.setToBeRemoved(true);
+            }
             return;
         }
         if(another instanceof Princess) {

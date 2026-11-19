@@ -1,27 +1,54 @@
 package vsb.cz.fei.donkeykongfx.settings;
 
 import javafx.scene.input.KeyCode;
-import lombok.Getter;
 import lombok.ToString;
 
-import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
-@Getter
+/**
+ * Mapping of game actions to keys. One key can trigger only one action.
+ */
 @ToString
 public class KeyBindings {
-    HashMap<String, KeyCode> keys = new HashMap<>();
+    public static final String MOVE_LEFT = "move_left";
+    public static final String MOVE_RIGHT = "move_right";
+    public static final String CLIMB_UP = "climb_up";
+    public static final String CLIMB_DOWN = "climb_down";
+    public static final String JUMP = "jump";
 
-    public KeyBindings(HashMap<String, KeyCode> keyCodes) {
-        keys.putAll(keyCodes);
+    private final Map<String, KeyCode> keys = new TreeMap<>();
+
+    /** Default bindings. */
+    public KeyBindings() {
+        keys.put(MOVE_LEFT, KeyCode.LEFT);
+        keys.put(MOVE_RIGHT, KeyCode.RIGHT);
+        keys.put(CLIMB_UP, KeyCode.UP);
+        keys.put(CLIMB_DOWN, KeyCode.DOWN);
+        keys.put(JUMP, KeyCode.SPACE);
     }
 
-    public KeyBindings() {
-        keys.put("move_left", KeyCode.LEFT);
-        keys.put("move_right", KeyCode.RIGHT);
-        keys.put("climb_up", KeyCode.UP);
-        keys.put("climb_down", KeyCode.DOWN);
-        keys.put("jump", KeyCode.SPACE);
+    /**
+     * Defaults overridden by {@code customKeys}, so an action missing from a saved file still works.
+     *
+     * @throws IllegalArgumentException if two actions would end up on the same key
+     */
+    public KeyBindings(Map<String, KeyCode> customKeys) {
+        this();
+        customKeys.forEach((action, key) -> {
+            if (keys.containsKey(action)) { // ignore actions this version of the game does not know
+                keys.put(action, key);
+            }
+        });
+        if (keys.values().stream().distinct().count() != keys.size()) {
+            throw new IllegalArgumentException("Two actions share the same key: " + keys);
+        }
+    }
+
+    /** Copy of the current bindings, safe to store. */
+    public Map<String, KeyCode> getKeys() {
+        return new TreeMap<>(keys);
     }
 
     public Set<String> getAllActions() {
@@ -33,19 +60,22 @@ public class KeyBindings {
     }
 
     public String getActionForKey(KeyCode keyCode) {
-        for (String action : keys.keySet()) {
-            if (keys.get(action) == keyCode) {
-                return action;
+        for (Map.Entry<String, KeyCode> entry : keys.entrySet()) {
+            if (entry.getValue() == keyCode) {
+                return entry.getKey();
             }
         }
         return null;
     }
 
+    /**
+     * @throws IllegalArgumentException if the key is already used by another action
+     */
     public void setKeyForAction(String action, KeyCode keyCode) {
-        if(getActionForKey(keyCode) == null || getActionForKey(keyCode).equals(action)) {
-            keys.put(action, keyCode);
-            return;
+        String owner = getActionForKey(keyCode);
+        if (owner != null && !owner.equals(action)) {
+            throw new IllegalArgumentException("Key " + keyCode.getName() + " is already assigned to action " + owner);
         }
-        throw new IllegalArgumentException("Key " + keyCode.getName() + " is already assigned to action " + getActionForKey(keyCode));
+        keys.put(action, keyCode);
     }
 }

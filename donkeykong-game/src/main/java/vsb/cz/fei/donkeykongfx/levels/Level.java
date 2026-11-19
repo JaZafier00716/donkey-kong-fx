@@ -1,9 +1,9 @@
 package vsb.cz.fei.donkeykongfx.levels;
 
-import javafx.geometry.Dimension2D;
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 import vsb.cz.fei.donkeykongfx.App;
@@ -30,8 +30,13 @@ import java.util.function.Consumer;
 
 @Log4j2
 public class Level extends ResizableDimension {
+    /** Size of the play field in design units; all positions and collisions use this coordinate system. */
+    public static final double DESIGN_WIDTH = 224;
+    public static final double DESIGN_HEIGHT = ResizableDimension.DESIGN_HEIGHT;
+
     private static final int LEVEL_NUMBER = 1;
-    private static final int STARTING_LIVES = 5;
+    /** The score used an 18 px font in the original 800 px window; keep that look in design units. */
+    private static final double SCORE_FONT_SIZE = 18 / MovableType.PHYSICS_SCALE;
 
     @Getter
     private Player player;
@@ -41,15 +46,16 @@ public class Level extends ResizableDimension {
     private final List<Renderable> objects = new ArrayList<>();
     private final List<GameObject> toBeAddedEntities = new ArrayList<>();
     private final List<GameObject> toBeRemovedEntities = new ArrayList<>();
-    private Comparator<Renderable> objectComparator;
-    private Comparator<GameObject> entityComparator;
+    private static final Comparator<Renderable> OBJECT_ORDER = Comparator.comparingInt(Level::objectRank);
+    private static final Comparator<GameObject> ENTITY_ORDER = Comparator.comparingInt(Level::entityRank);
     private double elapsedSeconds = 0;
-    boolean pause = false;
+    private boolean pause = false;
+    private boolean gameOverFired = false;
 
     public enum GameOverReason {
         PLAYER_DEAD,
         PLAYER_WON
-    };
+    }
 
     private Consumer<GameOverReason> gameOverListener;
 
@@ -91,19 +97,20 @@ public class Level extends ResizableDimension {
         }
     }
 
+    /** Fires the game-over callback once; the player keeps overlapping the princess for several frames. */
     private void triggerGameOver(GameOverReason reason) {
+        if (gameOverFired) {
+            return;
+        }
+        gameOverFired = true;
         log.info("Game over triggered with reason {}", reason);
         if (gameOverListener != null) {
             gameOverListener.accept(reason);
         }
     }
 
-    public Level(double width, double height, String playerName) {
-        this(new Dimension2D(width, height), playerName);
-    }
-
-    public Level(Dimension2D dimension, String playerName) {
-        super(dimension);
+    public Level(String playerName) {
+        super(DESIGN_WIDTH, DESIGN_HEIGHT);
         player = new Player(this, 32, playerName);
         attachPlayerListener();
 
@@ -117,89 +124,32 @@ public class Level extends ResizableDimension {
         addStaticBarrels(2, 2, 2);
         addLadders();
         objects.add(new Door(this, 16, new Point2D(0, 14), new Point2D(0, 8)));
-        initComparators();
+        objects.sort(OBJECT_ORDER); // static scenery never changes order afterwards
     }
 
-    public void initComparators() {
-        objectComparator = new Comparator<Renderable>() {
-            @Override
-            public int compare(Renderable o1, Renderable o2) {
-                if (o1 == o2) {
-                    return 0;
-                }
-                // Static barrels are always on top
-                if (o1 instanceof StaticBarrel) {
-                    return 1;
-                }
-                if (o2 instanceof StaticBarrel) {
-                    return -1;
-                }
-
-                if (o1 instanceof Door) {
-                    return 1;
-                }
-                if (o2 instanceof Door) {
-                    return -1;
-                }
-
-                // Platform is always second from top
-                if (o1 instanceof Platform) {
-                    return 1;
-                }
-                if (o2 instanceof Platform) {
-                    return -1;
-                }
-
-                // Ladders are always at the bottom
-                if (o1 instanceof Ladder) {
-                    return -1;
-                }
-                if (o2 instanceof Ladder) {
-                    return 1;
-                }
-
-                return 0;
-            }
+    /*
+     * Draw order, bottom to top. The ranks give a consistent ordering (the previous comparators
+     * answered "greater" for both argument orders of equal kinds, which breaks the Comparator
+     * contract and can make List.sort throw).
+     */
+    private static int objectRank(Renderable o) {
+        return switch (o) {
+            case Ladder l -> 0;
+            case Platform p -> 2;
+            case Door d -> 3;
+            case StaticBarrel b -> 4;
+            default -> 1;
         };
-        entityComparator = new Comparator<GameObject>() {
-            @Override
-            public int compare(GameObject o1, GameObject o2) {
-                if (o1 == o2) {
-                    return 0;
-                }
-                // Player is always on top
-                if (o1 instanceof Player) {
-                    return 1;
-                }
-                if (o2 instanceof Player) {
-                    return -1;
-                }
-                if(o1 instanceof Token) {
-                    return 1;
-                }
-                if(o2 instanceof Token) {
-                    return -1;
-                }
-                if( o1 instanceof FlamyBoi) {
-                    return 1;
-                }
-                if( o2 instanceof FlamyBoi) {
-                    return -1;
-                }
-                if( o1 instanceof Barrel) {
-                    return 1;
-                }
-                if( o2 instanceof Barrel) {
-                    return -1;
-                }
-                if( o1 instanceof DonkeyKong) {
-                    return 1;
-                }
-                if( o2 instanceof DonkeyKong) {
-                    return -1;
-                }
-                return 0;
-            }
+    }
+
+    private static int entityRank(GameObject o) {
+        return switch (o) {
+            case Player p -> 5;
+            case Token t -> 4;
+            case FlamyBoi f -> 3;
+            case Barrel b -> 2;
+            case DonkeyKong d -> 1;
+            default -> 0;
         };
     }
 
@@ -314,7 +264,7 @@ public class Level extends ResizableDimension {
         }
         elapsedSeconds += Math.max(0, deltaTime);
         for (GameObject entity : entities) {
-            if (entity instanceof GameObject o && o.isToBeRemoved()) {
+            if (entity.isToBeRemoved()) {
                 toBeRemovedEntities.add(entity);
                 continue;
             }
@@ -379,8 +329,9 @@ public class Level extends ResizableDimension {
                             }
                             if(c1 instanceof Player p1) {
                                 if(c2 instanceof Barrel b1) {
-                                    if(!p1.isDead() && !b1.isPlayer_jumped_over() && b1.collides(p1.getJumpOverBounds())) {
-                                        b1.setPlayer_jumped_over(true);
+                                    if (!p1.isDead() && !p1.isOnGround() && !p1.isOnLadder()
+                                            && !b1.isPlayerJumpedOver() && b1.collides(p1.getJumpOverBounds())) {
+                                        b1.setPlayerJumpedOver(true);
                                         p1.addScore(100);
                                     }
                                 }
@@ -401,15 +352,12 @@ public class Level extends ResizableDimension {
             startAutonomousEntity(entity);
         }
         toBeAddedEntities.clear();
-        objects.sort(objectComparator);
-        entities.sort(entityComparator);
+        entities.sort(ENTITY_ORDER);
     }
 
     public synchronized GameState toGameState() {
         GameState state = new GameState();
         state.playerName = this.player.getPlayerName();
-        state.levelHeight = this.getHeight();
-        state.levelWidth = this.getWidth();
         state.score = player.getScore();
         state.lives = player.getHealth().getLifes();
         state.duration = getDurationSeconds();
@@ -443,8 +391,8 @@ public class Level extends ResizableDimension {
 
     public synchronized void fromGameState(GameState state) {
         stopAutonomousEntities();
-        this.updateSize(new Dimension2D(state.levelWidth, state.levelHeight));
         this.elapsedSeconds = state.duration;
+        this.gameOverFired = false;
         entities.clear();
         entities.add(princess);
         for (EntityState es : state.entities) {
@@ -489,9 +437,11 @@ public class Level extends ResizableDimension {
 
     void renderScore(GraphicsContext gc) {
         gc.setFill(Color.WHITE);
-        gc.setFont(App.pressStartFont);
+        if (App.pressStartFont != null) {
+            gc.setFont(Font.font(App.pressStartFont.getFamily(), SCORE_FONT_SIZE));
+        }
         gc.setImageSmoothing(false);
-        gc.fillText(MessageFormat.format(I18n.get("game.score"), player.getScore()), 150*getScale(), 10*getScale());
+        gc.fillText(MessageFormat.format(I18n.get("game.score"), player.getScore()), 150 * getScale(), 10 * getScale());
     }
 
     public int getCurrentLevelNumber() {
@@ -503,6 +453,6 @@ public class Level extends ResizableDimension {
     }
 
     public int getDeathCount() {
-        return Math.max(0, STARTING_LIVES - player.getHealth().getLifes());
+        return Math.max(0, Player.STARTING_LIVES - player.getHealth().getLifes());
     }
 }

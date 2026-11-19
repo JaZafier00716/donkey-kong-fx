@@ -82,10 +82,6 @@ public abstract class MovableGameObject extends GameObject {
         return getBounds().getMinX() < 0 || getBounds().getMaxX() > rd.getWidth();
     }
 
-    protected double landingTolerance() {
-        return rd.getScale() * 1;   // small but not too small
-    }
-
     public Rectangle2D getPreviousBounds() {
         Rectangle2D currBounds = getBounds();
         Point2D prevPos = getPrevPosition();
@@ -109,24 +105,13 @@ public abstract class MovableGameObject extends GameObject {
         double currTop = curr.getMinY();
         double platBottom = plat.getMaxY();
 
-        boolean movingUp = getVelocityY()*rd.getScale() < 0;
-        // horizontal overlap
+        boolean movingUp = getVelocityY() < 0;
         double overlapX =
                 Math.min(curr.getMaxX(), plat.getMaxX()) -
                         Math.max(curr.getMinX(), plat.getMinX());
 
-        if (!movingUp || overlapX <= 0) {
-            return;
-        }
-
-        // crossed the platform bottom between previous and current frame
-        boolean crossedFromBelow =
-                prevTop >= (platBottom)
-                        && currTop <= (platBottom);
-
-        if (!crossedFromBelow) {
-            log.trace("Ceiling collision ignored: no crossing from below (prevTop={}, currTop={}, platBottom={})",
-                    prevTop, currTop, platBottom);
+        if (!PlatformCollision.hitsCeiling(prevTop, currTop, platBottom, overlapX, movingUp)) {
+            log.trace("Ceiling collision ignored (prevTop={}, currTop={}, platBottom={})", prevTop, currTop, platBottom);
             return;
         }
 
@@ -177,24 +162,13 @@ public abstract class MovableGameObject extends GameObject {
         double right = Math.min(movableBounds.getMaxX(), platformBounds.getMaxX());
         double overlapX = right - left;
 
-        double verticalTolerance = landingTolerance(); // small tolerance for vertical alignment
-        double horizontalTolerance = rd.getScale() * 0.1;
-        double maxStep = rd.getScale() * 4; // maximum step height
+        boolean movingDownwards = getVelocityY() > 0;
 
-        boolean movingDownwards = getVelocityY()*rd.getScale() > 0;
-
-        boolean crossedFromAbove =
-                prevBottom <= platformTop + verticalTolerance // previous bottom is above or at platform top
-                        && currBottom >= platformTop - verticalTolerance
-                        && movingDownwards; // current bottom is below or at platform top
-
-        boolean step =
-                prevBottom <= (platformTop + maxStep)
-                        && currBottom >= (platformTop - verticalTolerance)
-                        && Math.abs(currBottom - prevBottom) <= (maxStep + verticalTolerance);
-
-        if (overlapX > horizontalTolerance && (crossedFromAbove || step)) {
-            double newY = (platformTop - (movableBounds.getMaxY() - getPosition().getY() * rd.getScale())) / rd.getScale();
+        if (PlatformCollision.landsOn(prevBottom, currBottom, platformTop, overlapX, movingDownwards, rd.getScale())) {
+            // Rest slightly inside the platform: bounds that merely touch do not intersect, so an object
+            // placed exactly on top lost the ground contact every second frame.
+            double restingBottom = platformTop + PlatformCollision.RESTING_PENETRATION * rd.getScale();
+            double newY = (restingBottom - (movableBounds.getMaxY() - getPosition().getY() * rd.getScale())) / rd.getScale();
             setPosition(new Point2D(getPosition().getX(), newY));
             setVelocityY(0);
             setOnGround(true);

@@ -1,6 +1,5 @@
 package vsb.cz.fei.donkeykongfx.controllers;
 
-import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -13,8 +12,10 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.log4j.Log4j2;
 import vsb.cz.fei.donkeykongfx.App;
-import vsb.cz.fei.donkeykongfx.DrawingThread;
+import vsb.cz.fei.donkeykongfx.DrawingTimer;
 import vsb.cz.fei.donkeykongfx.I18n;
+import vsb.cz.fei.donkeykongfx.levels.Level;
+import vsb.cz.fei.donkeykongfx.view.Letterbox;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -26,7 +27,10 @@ public abstract class ResizableController {
     @Setter
     private App app;
     @Getter
-    private DrawingThread timer;
+    private DrawingTimer timer;
+    private static final Color BACKGROUND = Color.web("#121212");
+
+    private Font fpsFont;
     private double fpsSum = 0;
     private double fpsCount = 0;
     private int averageFps = 0;
@@ -58,39 +62,42 @@ public abstract class ResizableController {
     @FXML
     protected Canvas canvas; // optional in controllers that don't use a canvas
 
-    private final double aspectRatio = 224.0 / 256.0;
-
-    protected void installSizeListener() {
-        if (canvaContainer == null) return;
-
-        if (canvas != null) {
-            // keep canvas sized according to container height and aspect ratio
-            canvas.heightProperty().bind(canvaContainer.heightProperty());
-            canvas.widthProperty().bind(canvas.heightProperty().multiply(aspectRatio));
+    /**
+     * Makes the canvas always fill its container. The canvas is unmanaged so that its current size
+     * never acts as a minimum size of the container (which would stop the window from shrinking).
+     */
+    protected void installCanvasSizing() {
+        if (canvaContainer == null || canvas == null) {
+            return;
         }
-
-        canvaContainer.heightProperty().addListener((obs, oldVal, newVal) -> {
-            double height = newVal.doubleValue();
-            double width = height * aspectRatio;
-            onSizeChanged(width, height, resolveCurrentPlayer());
-        });
-
-        // schedule an initial sizing callback once layout is ready
-        Platform.runLater(() -> {
-            double height = canvaContainer.getHeight();
-            if (height <= 0 && canvas != null) height = canvas.getHeight();
-            double width = Math.max(0.0, height * aspectRatio);
-            onSizeChanged(width, height, resolveCurrentPlayer());
-        });
+        canvas.setManaged(false);
+        canvas.widthProperty().bind(canvaContainer.widthProperty());
+        canvas.heightProperty().bind(canvaContainer.heightProperty());
     }
 
-    private String resolveCurrentPlayer() {
-        return app != null ? app.getCurrentPlayer() : "Player";
+    /**
+     * Clears the canvas and switches the context to design coordinates: scaled uniformly to fit the
+     * canvas, centred, and clipped so nothing is drawn into the letterbox bars.
+     * Must be paired with {@link #endDesignSpace(GraphicsContext)}.
+     */
+    protected void beginDesignSpace(GraphicsContext gc, double canvasWidth, double canvasHeight) {
+        gc.setFill(BACKGROUND);
+        gc.fillRect(0, 0, canvasWidth, canvasHeight);
+
+        Letterbox box = Letterbox.fit(canvasWidth, canvasHeight, Level.DESIGN_WIDTH, Level.DESIGN_HEIGHT);
+        gc.save();
+        gc.translate(box.offsetX(), box.offsetY());
+        gc.scale(box.scale(), box.scale());
+        gc.beginPath();
+        gc.rect(0, 0, Level.DESIGN_WIDTH, Level.DESIGN_HEIGHT);
+        gc.clip();
     }
 
-    protected abstract void onSizeChanged(double width, double height, String currentPlayer);
+    protected void endDesignSpace(GraphicsContext gc) {
+        gc.restore();
+    }
 
-    public void start(DrawingThread timer) {
+    public void start(DrawingTimer timer) {
         if(this.timer != null) {
             try {
                 this.timer.stop();
@@ -120,18 +127,13 @@ public abstract class ResizableController {
         if(delta <= 0) return;
 
         int fps = calcFps(delta);
-        gc.setFont(new Font("Arial", 10));
+        if (fpsFont == null) {
+            fpsFont = new Font("Arial", 10);
+        }
+        gc.setFont(fpsFont);
         gc.setFill(Color.WHITE);
 
-        double w = 0;
-        try {
-            // prefer the injected canvas if present, otherwise try gc's canvas
-            if (canvas != null) w = canvas.getWidth();
-            else if (gc.getCanvas() != null) w = gc.getCanvas().getWidth();
-        } catch (Exception e) {
-            w = 0;
-        }
-
+        double w = gc.getCanvas().getWidth();
         gc.fillText(String.format("FPS: %3d", fps < 1000 ? fps : 999), w-50, 10);
     }
 

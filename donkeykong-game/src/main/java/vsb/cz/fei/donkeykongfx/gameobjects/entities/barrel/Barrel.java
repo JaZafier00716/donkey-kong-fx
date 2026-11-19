@@ -12,20 +12,16 @@ import vsb.cz.fei.donkeykongfx.gameobjects.platform.Platform;
 import vsb.cz.fei.donkeykongfx.gameobjects.entities.player.Player;
 
 @Log4j2
-public class Barrel extends MovableGameObject implements Runnable, AutonomousEntity {
-    private static final long THREAD_SLEEP_MS = 16;
-
+public class Barrel extends MovableGameObject implements AutonomousEntity {
     private BarrelState barrelState;
     private final AnimationData roll;
     private final AnimationData climb;
     private boolean canUpdatePosition = false;
     private double positionTimer = 0.0;
-    private volatile boolean behaviorRunning = false;
-    private volatile boolean behaviorPaused = false;
-    private Thread behaviorThread;
+    private final BehaviorLoop behaviorLoop;
     @Setter
     @Getter
-    private boolean player_jumped_over = false;
+    private boolean playerJumpedOver = false;
 
     public Barrel(ResizableDimension rd, int height, Point2D position) {
         super(
@@ -33,16 +29,15 @@ public class Barrel extends MovableGameObject implements Runnable, AutonomousEnt
                 height,
                 position,
                 new MovableType(
-                        rd,
                         0,
                         20,
                         50,
                         200,
                         0,
                         true,
-                        false,
-                        new Point2D(0, 0)
-                ));
+                        false));
+        this.behaviorLoop = new BehaviorLoop("Barrel-" + Integer.toHexString(System.identityHashCode(this)), rd, 16, 0.05,
+                this::update, this::isToBeRemoved);
         this.frameIndex = 0;
         this.barrelState = BarrelState.CLIMBING;
         this.setDirectionY(1);
@@ -160,51 +155,23 @@ public class Barrel extends MovableGameObject implements Runnable, AutonomousEnt
 
     public synchronized void setStateByName(String state) {
         this.barrelState = BarrelState.valueOf(state);
+        // a rolling barrel restored from a save has already been released; without this it would be
+        // teleported back to the spawn point after one second
+        this.canUpdatePosition = barrelState == BarrelState.ROLLING;
     }
 
     @Override
     public void startBehaviorThread() {
-        if (behaviorThread != null && behaviorThread.isAlive()) {
-            return;
-        }
-        behaviorRunning = true;
-        behaviorThread = new Thread(this, "Barrel-" + Integer.toHexString(System.identityHashCode(this)));
-        behaviorThread.setDaemon(true);
-        behaviorThread.start();
+        behaviorLoop.start();
     }
 
     @Override
     public void stopBehaviorThread() {
-        behaviorRunning = false;
-        Thread thread = behaviorThread;
-        if (thread != null) {
-            thread.interrupt();
-        }
+        behaviorLoop.stop();
     }
 
     @Override
     public void setBehaviorPaused(boolean paused) {
-        behaviorPaused = paused;
-    }
-
-    @Override
-    public void run() {
-        long lastTick = System.nanoTime();
-        while (behaviorRunning && !isToBeRemoved()) {
-            long now = System.nanoTime();
-            double deltaTime = (now - lastTick) / 1_000_000_000D;
-            lastTick = now;
-
-            if (!behaviorPaused) {
-                update(Math.min(deltaTime, 0.05));
-            }
-
-            try {
-                Thread.sleep(THREAD_SLEEP_MS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                behaviorRunning = false;
-            }
-        }
+        behaviorLoop.setPaused(paused);
     }
 }

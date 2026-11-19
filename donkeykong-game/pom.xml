@@ -7,7 +7,7 @@
     <parent>
         <groupId>cz.vsb.fei</groupId>
         <artifactId>DonkeyKongFX</artifactId>
-        <version>0.0.1-SNAPHOST</version>
+        <version>0.0.1-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -81,14 +81,6 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
             <version>5.11.0</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- Kelvin test support -->
-        <dependency>
-            <groupId>cz.vsb.fei</groupId>
-            <artifactId>kelvin-java-unittest-support</artifactId>
-            <version>[0.1.4,)</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -188,13 +180,6 @@
             </plugin>
         </plugins>
     </build>
-
-    <repositories>
-        <repository>
-            <id>vsb-education-release</id>
-            <url>https://artifactory.cs.vsb.cz/repository/education-releases/</url>
-        </repository>
-    </repositories>
 
 </project>
 

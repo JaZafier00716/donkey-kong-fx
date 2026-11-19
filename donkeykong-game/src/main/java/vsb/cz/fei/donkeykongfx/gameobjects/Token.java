@@ -4,9 +4,6 @@ import javafx.geometry.Point2D;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.canvas.GraphicsContext;
 import vsb.cz.fei.donkeykongfx.controllers.ResizableDimension;
-import vsb.cz.fei.donkeykongfx.gameobjects.entities.player.Player;
-
-import java.util.Objects;
 
 public class Token extends GameObject {
     private final AnimationData token;
@@ -33,11 +30,9 @@ public class Token extends GameObject {
         );
     }
 
+    /** Collecting is handled by the player, so a token is scored exactly once. */
     @Override
     public void hitBy(Collisionable another) {
-        if(another instanceof Player p && !Objects.equals(p.getStateName(), "DEATH")) {
-            setToBeRemoved(true);
-        }
     }
 
     @Override

@@ -7,6 +7,7 @@ import lombok.extern.log4j.Log4j2;
 import vsb.cz.fei.donkeykongfx.controllers.ResizableDimension;
 import vsb.cz.fei.donkeykongfx.gameobjects.AnimationData;
 import vsb.cz.fei.donkeykongfx.gameobjects.AutonomousEntity;
+import vsb.cz.fei.donkeykongfx.gameobjects.BehaviorLoop;
 import vsb.cz.fei.donkeykongfx.gameobjects.Collisionable;
 import vsb.cz.fei.donkeykongfx.gameobjects.MovableGameObject;
 import vsb.cz.fei.donkeykongfx.gameobjects.MovableType;
@@ -14,17 +15,13 @@ import vsb.cz.fei.donkeykongfx.gameobjects.platform.Platform;
 import vsb.cz.fei.donkeykongfx.gameobjects.entities.player.Player;
 
 @Log4j2
-public class FlamyBoi extends MovableGameObject implements Runnable, AutonomousEntity {
-    private static final long THREAD_SLEEP_MS = 16;
-
+public class FlamyBoi extends MovableGameObject implements AutonomousEntity {
     FlamyBoiState flamyBoiState;
     AnimationData fall;
     AnimationData move;
     private boolean canUpdatePosition = false;
     private double positionTimer = 0.0;
-    private volatile boolean behaviorRunning = false;
-    private volatile boolean behaviorPaused = false;
-    private Thread behaviorThread;
+    private final BehaviorLoop behaviorLoop;
 
 
     public FlamyBoi(ResizableDimension rd, int defaultHeight, Point2D position) {
@@ -33,16 +30,15 @@ public class FlamyBoi extends MovableGameObject implements Runnable, AutonomousE
                 defaultHeight,
                 position,
                 new MovableType(
-                        rd,
                         0,
                         10,
                         20,
                         100,
                         0,
                         true,
-                        false,
-                        new Point2D(0, 0)
-                ));
+                        false));
+        this.behaviorLoop = new BehaviorLoop("FlamyBoi-" + Integer.toHexString(System.identityHashCode(this)), rd, 16, 0.05,
+                this::update, this::isToBeRemoved);
         this.frameIndex = 0;
         flamyBoiState = FlamyBoiState.FALLING;
 
@@ -167,51 +163,22 @@ public class FlamyBoi extends MovableGameObject implements Runnable, AutonomousE
 
     public synchronized void setStateByName(String state) {
         this.flamyBoiState = FlamyBoiState.valueOf(state);
+        // a flame restored from a save has already been released and must not wait again
+        this.canUpdatePosition = flamyBoiState == FlamyBoiState.MOVING;
     }
 
     @Override
     public void startBehaviorThread() {
-        if (behaviorThread != null && behaviorThread.isAlive()) {
-            return;
-        }
-        behaviorRunning = true;
-        behaviorThread = new Thread(this, "FlamyBoi-" + Integer.toHexString(System.identityHashCode(this)));
-        behaviorThread.setDaemon(true);
-        behaviorThread.start();
+        behaviorLoop.start();
     }
 
     @Override
     public void stopBehaviorThread() {
-        behaviorRunning = false;
-        Thread thread = behaviorThread;
-        if (thread != null) {
-            thread.interrupt();
-        }
+        behaviorLoop.stop();
     }
 
     @Override
     public void setBehaviorPaused(boolean paused) {
-        behaviorPaused = paused;
-    }
-
-    @Override
-    public void run() {
-        long lastTick = System.nanoTime();
-        while (behaviorRunning && !isToBeRemoved()) {
-            long now = System.nanoTime();
-            double deltaTime = (now - lastTick) / 1_000_000_000D;
-            lastTick = now;
-
-            if (!behaviorPaused) {
-                update(Math.min(deltaTime, 0.05));
-            }
-
-            try {
-                Thread.sleep(THREAD_SLEEP_MS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                behaviorRunning = false;
-            }
-        }
+        behaviorLoop.setPaused(paused);
     }
 }

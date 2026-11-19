@@ -1,8 +1,9 @@
 package vsb.cz.fei.donkeykongfx.score;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Data;
 import lombok.extern.log4j.Log4j2;
 
 import java.io.IOException;
@@ -13,89 +14,78 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
- * REST client for communicating with the donkeykong-web service.
- * Replaces direct database access with HTTP calls.
+ * REST client for the {@code donkeykong-web} service, which stores and lists game results.
+ * <p>
+ * The base URL comes from the {@code DONKEYKONG_WEB_URL} environment variable
+ * (default {@value #DEFAULT_BASE_URL}).
  */
 @Log4j2
 public class ScoreRestClient {
-    private static final String BASE_URL = System.getenv().getOrDefault(
-            "DONKEYKONG_WEB_URL",
-            "http://localhost:8081"
-    );
-    private static final String SCORES_API = BASE_URL + "/api/v1/game-results";
+    public static final String DEFAULT_BASE_URL = "http://localhost:8081";
+    private static final String RESULTS_PATH = "/api/v1/game-results";
 
-    private static final HttpClient httpClient = HttpClient.newBuilder()
+    private static final ExecutorService BACKGROUND = Executors.newCachedThreadPool(runnable -> {
+        Thread thread = new Thread(runnable, "score-client");
+        thread.setDaemon(true); // never keep the JVM alive after the window is closed
+        return thread;
+    });
+    private static final ScoreRestClient DEFAULT = new ScoreRestClient(
+            System.getenv().getOrDefault("DONKEYKONG_WEB_URL", DEFAULT_BASE_URL));
+
+    private final URI resultsUri;
+    private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(2))
             .build();
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    // This no-op init method keeps compatibility with existing game code
-    public static void init() {
-        log.info("ScoreRestClient initialized. Target: {}", SCORES_API);
+    public ScoreRestClient(String baseUrl) {
+        String trimmed = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        this.resultsUri = URI.create(trimmed + RESULTS_PATH);
     }
 
-    // This no-op method keeps compatibility with existing game code
-    public static void startDBWebServer() {
-        log.trace("Skipping local H2 web server - using remote donkeykong-web service");
+    public static ScoreRestClient getDefault() {
+        return DEFAULT;
     }
 
-    /**
-     * Load all scores from the remote service
-     */
-    public static List<Score> load() throws ScoreException {
+    /** Loads all scores from the remote service. Blocks, so do not call it on the UI thread. */
+    public List<Score> load() throws ScoreException {
         try {
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(SCORES_API))
+            HttpRequest request = HttpRequest.newBuilder(resultsUri)
                     .timeout(Duration.ofSeconds(3))
                     .GET()
                     .build();
-
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
             if (response.statusCode() != 200) {
                 throw new ScoreException("Failed to load scores. Status: " + response.statusCode());
             }
 
-            List<ScoreDTO> dtos = objectMapper.readValue(
-                    response.body(),
-                    new TypeReference<List<ScoreDTO>>() {}
-            );
-
+            List<ScoreDTO> dtos = objectMapper.readValue(response.body(), new TypeReference<>() {});
             List<Score> scores = new ArrayList<>();
             for (ScoreDTO dto : dtos) {
-                // Create Score entity from DTO (converting playerName back to nickName)
-                Score score = new Score(dto.getPlayerName(), dto.getScore());
-                scores.add(score);
+                if (dto.getPlayerName() != null && dto.getScore() != null) {
+                    scores.add(new Score(dto.getPlayerName(), dto.getScore()));
+                }
             }
-
             return scores;
-
-        } catch (IOException | InterruptedException e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            log.error("Error loading scores from remote service", e);
-            throw new ScoreException("Load failed: " + describeCause(e), e);
+        } catch (IOException e) {
+            throw new ScoreException("Load failed: " + describe(e), e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ScoreException("Load interrupted", e);
         }
     }
 
-    /**
-     * Save a single score to the remote service
-     */
-    public static void save(Score score) throws ScoreException {
-        save(score, null, null, null);
-    }
-
-    /**
-     * Save a single score with game metadata to the remote service
-     */
-    public static void save(Score score, Integer level, Double duration, Integer deaths) throws ScoreException {
+    /** Saves one finished game with its metadata. Blocks, so do not call it on the UI thread. */
+    public void save(Score score, Integer level, Double duration, Integer deaths) throws ScoreException {
         if (score.getNickName() == null || score.getNickName().isBlank()) {
             return;
         }
-
         try {
             ScoreDTO dto = new ScoreDTO();
             dto.setPlayerName(score.getNickName());
@@ -104,63 +94,54 @@ public class ScoreRestClient {
             dto.setDuration(duration);
             dto.setDeaths(deaths);
 
-            String jsonBody = objectMapper.writeValueAsString(dto);
-
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(SCORES_API))
+            HttpRequest request = HttpRequest.newBuilder(resultsUri)
                     .timeout(Duration.ofSeconds(3))
                     .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                    .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(dto)))
                     .build();
-
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
             if (response.statusCode() != 201) {
                 throw new ScoreException("Failed to save score. Status: " + response.statusCode());
             }
-
             log.debug("Score saved: {} - {}", score.getNickName(), score.getScore());
-
-        } catch (IOException | InterruptedException e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            log.error("Error saving score to remote service", e);
-            throw new ScoreException("Save failed: " + describeCause(e), e);
+        } catch (IOException e) {
+            throw new ScoreException("Save failed: " + describe(e), e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ScoreException("Save interrupted", e);
         }
     }
 
-    private static String describeCause(Throwable e) {
-        if (e == null) {
-            return "unknown error";
-        }
+    public CompletableFuture<List<Score>> loadAsync() {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return load();
+            } catch (ScoreException e) {
+                throw new CompletionException(e);
+            }
+        }, BACKGROUND);
+    }
+
+    public CompletableFuture<Void> saveAsync(Score score, Integer level, Double duration, Integer deaths) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                save(score, level, duration, deaths);
+            } catch (ScoreException e) {
+                throw new CompletionException(e);
+            }
+        }, BACKGROUND);
+    }
+
+    private static String describe(Throwable e) {
         String message = e.getMessage();
         if (message != null && !message.isBlank()) {
             return message;
         }
-        Throwable cause = e.getCause();
-        if (cause != null && cause != e) {
-            String causeMessage = cause.getMessage();
-            if (causeMessage != null && !causeMessage.isBlank()) {
-                return causeMessage;
-            }
-            return cause.getClass().getSimpleName();
-        }
         return e.getClass().getSimpleName();
     }
 
-    /**
-     * Save multiple scores to the remote service
-     */
-    public static void save(List<Score> scores) throws ScoreException {
-        for (Score score : scores) {
-            save(score);
-        }
-    }
-
-    /**
-     * DTO for transferring game result data via REST API
-     */
+    /** JSON shape of a game result as exchanged with the web service. */
+    @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ScoreDTO {
         private Long id;
@@ -169,55 +150,5 @@ public class ScoreRestClient {
         private Integer level;
         private Double duration;
         private Integer deaths;
-
-        // Getters and setters
-        public Long getId() {
-            return id;
-        }
-
-        public void setId(Long id) {
-            this.id = id;
-        }
-
-        public String getPlayerName() {
-            return playerName;
-        }
-
-        public void setPlayerName(String playerName) {
-            this.playerName = playerName;
-        }
-
-        public Integer getScore() {
-            return score;
-        }
-
-        public void setScore(Integer score) {
-            this.score = score;
-        }
-
-        public Integer getLevel() {
-            return level;
-        }
-
-        public void setLevel(Integer level) {
-            this.level = level;
-        }
-
-        public Double getDuration() {
-            return duration;
-        }
-
-        public void setDuration(Double duration) {
-            this.duration = duration;
-        }
-
-        public Integer getDeaths() {
-            return deaths;
-        }
-
-        public void setDeaths(Integer deaths) {
-            this.deaths = deaths;
-        }
     }
-
 }

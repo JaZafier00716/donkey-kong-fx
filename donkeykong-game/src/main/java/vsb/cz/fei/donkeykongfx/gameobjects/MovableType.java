@@ -1,97 +1,62 @@
-// java
 package vsb.cz.fei.donkeykongfx.gameobjects;
 
 import javafx.geometry.Point2D;
-import vsb.cz.fei.donkeykongfx.controllers.ResizableDimension;
 
+/**
+ * Movement profile of a moving object (speeds, gravity, jump) and the physics step itself.
+ * <p>
+ * All values are in design units, so movement does not depend on the window size. The numbers were
+ * tuned in the original 800 px high window, therefore every speed is multiplied by
+ * {@link #PHYSICS_SCALE}.
+ */
 public record MovableType(
-        ResizableDimension rd,
         double initSpeed,
         double baseSpeed,
         double gravityScale,
         double maxFallSpeed,
         double jumpImpulse,
         boolean affectedByGravity,
-        boolean canJump,
-        Point2D currentSpeed
+        boolean canJump
 ) {
-    @Override
-    public double initSpeed() {
-        return initSpeed;
-    }
-
-    @Override
-    public double baseSpeed() {
-        return baseSpeed;
-    }
-
-    @Override
-    public double gravityScale() {
-        return gravityScale;
-    }
-
-    @Override
-    public double maxFallSpeed() {
-        return maxFallSpeed;
-    }
-
-    @Override
-    public double jumpImpulse() {
-        return jumpImpulse;
-    }
-
-    @Override
-    public boolean affectedByGravity() {
-        return affectedByGravity;
-    }
-
-    @Override
-    public boolean canJump() {
-        return canJump;
-    }
+    /** Original window height (800 px) divided by the design height (256): keeps the tuned game feel. */
+    public static final double PHYSICS_SCALE = 800.0 / 256.0;
 
     public void apply(MovableGameObject obj, double dt) {
         obj.setPrevPosition(obj.getPosition());
 
-        // horizontal behaviour
         int dirX = obj.getDirectionX(); // 1 - right, 0 - standStill, -1 - left
-        if (dirX == 0) {
-            obj.setVelocityX(0);
-        } else {
-            obj.setVelocityX(Math.copySign(baseSpeed, dirX));
-        }
+        obj.setVelocityX(horizontalVelocity(dirX));
 
-        // Vertical behaviour
-        double vy = getVy(obj, dt);
-
+        double vy = verticalVelocity(obj.getVelocityY(), obj.getDirectionY(), obj.isOnLadder(), obj.isOnGround(), dt);
         obj.setVelocityY(vy);
-        Point2D newPos = obj.getPosition().add(obj.getVelocityX() * dt*rd.getScale(), obj.getVelocityY() * dt * rd.getScale());
+
+        Point2D newPos = obj.getPosition().add(
+                obj.getVelocityX() * dt * PHYSICS_SCALE,
+                obj.getVelocityY() * dt * PHYSICS_SCALE);
         obj.setPosition(newPos);
     }
 
-    private double getVy(MovableGameObject obj, double dt) {
-        double vy = obj.getVelocityY();
-        int dirY = obj.getDirectionY(); // 1 - down, 0 - no vertical movement, -1 - up
-        if (obj.isOnLadder()) {
-            if (dirY == 0) {
-                vy = 0;
-            } else {
-                vy = Math.copySign(baseSpeed, dirY);
-            }
-        } else {
-            if (affectedByGravity && !obj.isOnGround()) {
-                vy += gravityScale * dt*rd.getScale();
-            } else if (obj.isOnGround()) {
-                vy = 0;
-            }
-        }
-        // clamp downward speed
-        if (vy > maxFallSpeed) {
-            vy = maxFallSpeed;
-        } else if (vy < -maxFallSpeed) {
-            vy = -maxFallSpeed;
-        }
-        return vy;
+    /** Horizontal velocity for a direction: 1 right, -1 left, 0 standing still. */
+    public double horizontalVelocity(int dirX) {
+        return dirX == 0 ? 0 : Math.copySign(baseSpeed, dirX);
     }
 
+    /**
+     * Vertical velocity after {@code dt} seconds.
+     *
+     * @param vy       current vertical velocity (positive is down)
+     * @param dirY     1 - down, 0 - no vertical movement, -1 - up (only used on a ladder)
+     * @param onLadder whether the object is climbing
+     * @param onGround whether the object stands on a platform
+     */
+    public double verticalVelocity(double vy, int dirY, boolean onLadder, boolean onGround, double dt) {
+        if (onLadder) {
+            vy = dirY == 0 ? 0 : Math.copySign(baseSpeed, dirY);
+        } else if (affectedByGravity && !onGround) {
+            vy += gravityScale * dt * PHYSICS_SCALE;
+        } else if (onGround) {
+            vy = 0;
+        }
+        return Math.max(-maxFallSpeed, Math.min(maxFallSpeed, vy));
+    }
 }

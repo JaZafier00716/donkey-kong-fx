@@ -8,7 +8,7 @@ import java.util.Random;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Utilities {
 	public static final Random RANDOM = new Random();
-	public static final String[] nicks = { "CyberSurfer", "PixelPioneer", "SocialSavvy", "DigitalDynamo", "ByteBuddy", "InstaGuru",
+	private static final String[] NICKS = { "CyberSurfer", "PixelPioneer", "SocialSavvy", "DigitalDynamo", "ByteBuddy", "InstaGuru",
 			"TikTokTornado", "SnapMaster", "TweetTrendsetter", "ChatChampion", "HashtagHero", "EmojiEnthusiast",
 			"StoryStylist", "SelfieStar", "FilterFanatic", "VlogVirtuoso", "Memelord", "InfluencerInsider",
 			"StreamSupreme", "GeekyGizmo", "CodeCommander", "JavaJuggernaut", "ByteNinja", "SyntaxSamurai",
@@ -27,6 +27,6 @@ public class Utilities {
 			"CloudConqueror", "EchoExplorer", "FunctionFanatic", "RobotRanger" };
 
 	public static String getRandomNick() {
-		return nicks[RANDOM.nextInt(nicks.length)];
+		return NICKS[RANDOM.nextInt(NICKS.length)];
 	}
 }

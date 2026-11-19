@@ -214,11 +214,6 @@ public class SettingsController extends SettingsAffected {
         log.debug("Settings view initialized with {} key binding rows", KeyBindingsTable.getItems().size());
     }
 
-    @Override
-    protected void onSizeChanged(double width, double height, String currentPlayer) {
-
-    }
-
     private record LanguageOption(String languageTag, String label) {
         @Override
         public String toString() {

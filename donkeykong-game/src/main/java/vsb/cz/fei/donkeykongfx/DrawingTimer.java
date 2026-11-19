@@ -5,13 +5,13 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 
 
-public class DrawingThread extends AnimationTimer {
+public class DrawingTimer extends AnimationTimer {
     private final Canvas canvas;
     private final RenderHandler handler;
 
 
 
-    public DrawingThread(Canvas canvas, RenderHandler handler) {
+    public DrawingTimer(Canvas canvas, RenderHandler handler) {
         this.canvas = canvas;
         this.handler = handler;
     }
