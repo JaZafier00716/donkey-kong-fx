@@ -12,6 +12,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import lombok.extern.log4j.Log4j2;
+import javafx.beans.property.ReadOnlyStringWrapper;
 import vsb.cz.fei.donkeykongfx.I18n;
 import vsb.cz.fei.donkeykongfx.view.Dialogs;
 import vsb.cz.fei.donkeykongfx.settings.KeyBindingRow;
@@ -70,7 +71,7 @@ public class SettingsController extends SettingsAffected {
 
 
     void initKeyGrid() {
-        columnAction.setCellValueFactory(new PropertyValueFactory<>("action"));
+        columnAction.setCellValueFactory(cell -> new ReadOnlyStringWrapper(I18n.action(cell.getValue().getAction())));
         columnKey.setCellValueFactory(new PropertyValueFactory<>("keyName"));
         columnButton.setCellFactory(col -> new TableCell<>() {
             private final Button btn = new Button(I18n.get("settings.changeKey"));
@@ -87,7 +88,7 @@ public class SettingsController extends SettingsAffected {
                         ChangeKeyWindow.toFront();
                         ChangeKeyWindow.requestFocus();
 
-                        ChangeKeyActionLabel.setText(row.getAction());
+                        ChangeKeyActionLabel.setText(I18n.action(row.getAction()));
                         ChangeKeyKeyLabel.setText(row.getKeyName());
                         ChangeKeyKeyLabel.setEditable(false);
 
@@ -131,7 +132,7 @@ public class SettingsController extends SettingsAffected {
         log.debug("Captured new key {} for action {}", newKey, action);
         ChangeKeyKeyLabel.setText(newKey.getName());
         ChangeKeyKeyLabel.setEditable(false);
-        ChangeKeyActionLabel.setText(action);
+        ChangeKeyActionLabel.setText(I18n.action(action));
         ChangeKeySaveButton.setOnAction(e -> {
             OnSaveKeyBind(action, newKey);
             initKeyGrid();

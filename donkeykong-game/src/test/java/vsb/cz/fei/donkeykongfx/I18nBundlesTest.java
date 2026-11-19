@@ -82,4 +82,28 @@ class I18nBundlesTest {
 
         assertEquals("en", I18n.locale().getLanguage());
     }
+
+    @Test
+    void everyKeyBindingActionHasATranslatedLabel() throws IOException {
+        List<String> actions = List.of(vsb.cz.fei.donkeykongfx.settings.KeyBindings.MOVE_LEFT,
+                vsb.cz.fei.donkeykongfx.settings.KeyBindings.MOVE_RIGHT,
+                vsb.cz.fei.donkeykongfx.settings.KeyBindings.CLIMB_UP,
+                vsb.cz.fei.donkeykongfx.settings.KeyBindings.CLIMB_DOWN,
+                vsb.cz.fei.donkeykongfx.settings.KeyBindings.JUMP);
+        for (String bundle : BUNDLES) {
+            Properties properties = load(bundle);
+            for (String action : actions) {
+                String label = properties.getProperty("action." + action);
+                assertNotNull(label, bundle + " has no label for " + action);
+                assertFalse(label.isBlank());
+            }
+        }
+    }
+
+    @Test
+    void unknownActionFallsBackToItsId() {
+        I18n.setLocaleTag("en");
+        assertEquals("Jump", I18n.action("jump"));
+        assertEquals("teleport", I18n.action("teleport"));
+    }
 }

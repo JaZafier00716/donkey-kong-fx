@@ -19,6 +19,12 @@ public final class I18n {
         return bundle.getString(key);
     }
 
+    /** Readable, translated name of a key-binding action; falls back to the raw id. */
+    public static String action(String actionId) {
+        String key = "action." + actionId;
+        return bundle.containsKey(key) ? bundle.getString(key) : actionId;
+    }
+
     public static Locale locale() {
         return locale;
     }
