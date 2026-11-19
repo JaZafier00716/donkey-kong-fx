@@ -23,11 +23,11 @@ Default ports:
 ## Repository Structure
 
 ```text
-DonkeyKongFX-moduless/
+donkey-kong-fx/
 ├── donkeykong-db/      # Database REST service and JPA persistence
 ├── donkeykong-web/     # Web UI and REST proxy/gateway
 ├── donkeykong-game/    # JavaFX game client
-├── db/                 # H2 database files
+├── db/                 # H2 database files (generated at runtime, git-ignored)
 ├── pom.xml             # Parent Maven aggregator
 ├── PROJECT_CONTEXT.md  # Extra architecture/lab notes
 └── IDE_RUN_CONFIGURATION.md
@@ -132,20 +132,23 @@ Important top-level files:
 
 - `App.java` - JavaFX entry point. Loads language, initializes score client,
   and switches between scenes.
-- `DrawingThread.java` - Wraps JavaFX `AnimationTimer` and calls rendering each
+- `DrawingTimer.java` - Wraps JavaFX `AnimationTimer` and calls rendering each
   frame.
-- `RenderHandler.java` - Callback interface used by `DrawingThread`.
+- `RenderHandler.java` - Callback interface used by `DrawingTimer`.
+- `GameSaveStore.java` - Reads, writes and deletes the `state.bin` save file.
 - `GameState.java` - Serializable save-file model used for `state.bin`.
 - `I18n.java` - Loads the `messages*.properties` resource bundles.
-- `IntDimension2D.java` - Small width/height record.
-- `module-info.java` - Java module descriptor for JavaFX, HTTP, Jackson,
-  Lombok, and Log4j access.
+
+Scaling (`view/`): the game world is a fixed 224x256 design space. Only
+rendering scales: `Letterbox` (pure math, keeps aspect ratio and centres),
+`WindowSizing` (initial/minimum window size from the screen's visual bounds)
+and `FitPane` (scales the menu and options screens into the window).
 
 Game controllers:
 
 - `controllers/ResizableController.java` - Shared JavaFX controller base with
   app reference, timer management, canvas resizing, FPS drawing, and alerts.
-- `controllers/ResizableDimension.java` - Stores current dimensions and scale.
+- `controllers/ResizableDimension.java` - Immutable design-space dimensions.
 - `controllers/SettingsAffected.java` - Adds keybinding load/save support to
   controllers.
 - `controllers/MenuController.java` - Main menu, player name input,
@@ -185,7 +188,6 @@ Static and collectible objects:
 - `gameobjects/Token.java` - Collectible score token.
 - `gameobjects/platform/Platform.java` - Tile platform and ladder entrance.
 - `gameobjects/ladder/Ladder.java` - Climbable ladder rendering and bounds.
-- `gameobjects/ladder/TileCoord.java` - Tile coordinate record.
 - `gameobjects/staticbarrel/StaticBarrel.java` - Decorative barrel stack.
 
 Entities:
@@ -262,10 +264,23 @@ Environment variables:
 
 ## Local Files Created at Runtime
 
+These are generated on first use and are git-ignored.
+
 - `db/score-db.mv.db` - H2 database file for backend score data.
 - `state.bin` - JavaFX game save-state file.
-- `keybindings.cfg` - Local game keybindings.
+- `keybindings.cfg` - Local game keybindings (defaults are used when absent).
 - `settings.cfg` - Local game settings such as selected language.
+
+## Build and Test
+
+```bash
+cd donkey-kong-fx
+mvn -B verify
+```
+
+`donkeykong-db` and `donkeykong-web` declare Java 25; `donkeykong-game` builds
+for Java 21 with JavaFX 21. On a machine with only JDK 21 add
+`-Djava.version=21`.
 
 ## Mental Model
 

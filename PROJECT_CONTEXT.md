@@ -55,7 +55,7 @@ Code Gen:      Lombok
 ## 📁 Project Structure
 
 ```
-DonkeyKongFX-moduless/
+donkey-kong-fx/
 ├── donkeykong-db/                    # Database Service (Port 8080, fallback upward)
 │   ├── src/main/java/.../entity/
 │   │   ├── Player.java              # @Entity with @OneToMany GameResults
@@ -73,8 +73,10 @@ DonkeyKongFX-moduless/
 │   └── pom.xml                      # Spring Boot 4.0.5 parent
 │
 ├── donkeykong-web/                   # Web Service (Port 8080, fallback upward)
-│   ├── src/main/java/.../entity/
-│   │   └── GameResult.java (DTO)    # Data Transfer Object
+│   ├── src/main/java/.../dto/
+│   │   └── GameResult.java          # Data Transfer Object
+│   ├── src/main/java/.../service/
+│   │   └── DbServiceClient.java     # RestTemplate client for the DB service
 │   ├── src/main/java/.../controller/
 │   │   ├── GameResultController.java # REST proxy to DB service
 │   │   ├── GameResultUIController.java # Thymeleaf UI logic
@@ -89,7 +91,8 @@ DonkeyKongFX-moduless/
 │
 ├── donkeykong-game/                  # Game Application
 │   ├── src/main/java/vsb/cz/fei/donkeykongfx/
-│   │   ├── score/                   # Score entities
+│   │   ├── view/                    # Letterbox, WindowSizing, FitPane (scaling)
+│   │   ├── score/                   # Score REST client, leaderboard
 │   │   ├── settings/                # Local key/language settings stored in cfg files
 │   │   └── [Game logic]
 │   └── pom.xml
@@ -261,7 +264,7 @@ Legacy/local tables and columns removed from the active schema:
 
 ### Build (Maven)
 ```bash
-cd /home/jan/Documents/school/druhak/JAVA/DonkeyKongFX-moduless
+cd donkey-kong-fx
 mvn clean package -DskipTests
 ```
 
