@@ -130,11 +130,10 @@ h1 {
 }
 
 .stat-card h3 {
-    color: var(--dk-red);
+    color: var(--dk-orange);
     font-size: 9px;
     line-height: 1.6;
     margin-bottom: 10px;
-    text-shadow: 0 1px 0 var(--dk-orange);
     text-transform: uppercase;
 }
 
@@ -243,8 +242,7 @@ td {
 }
 
 th {
-    color: var(--dk-red);
-    text-shadow: 0 1px 0 var(--dk-orange);
+    color: var(--dk-orange);
 }
 
 .sort-link {
@@ -263,7 +261,7 @@ tbody tr:hover {
 }
 
 .rank {
-    color: var(--dk-red);
+    color: var(--dk-muted);
     text-align: center;
     width: 50px;
 }
@@ -296,7 +294,7 @@ tbody tr:hover {
 }
 
 .empty-state h2 {
-    color: var(--dk-red);
+    color: var(--dk-orange);
     font-size: 18px;
     margin-bottom: 16px;
 }
@@ -326,6 +324,15 @@ tbody tr:hover {
 
 .footer a:hover {
     color: var(--dk-text);
+}
+
+/* visible keyboard focus, same light frame as in the game */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+    outline: 3px solid var(--dk-text);
+    outline-offset: 2px;
 }
 
 @media (max-width: 768px) {
