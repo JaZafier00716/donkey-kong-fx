@@ -7,10 +7,14 @@ import cz.vsb.fei.donkeykong.repository.GameResultRepository;
 import cz.vsb.fei.donkeykong.repository.GameLevelRepository;
 import cz.vsb.fei.donkeykong.repository.PlayerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +22,8 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/v1/game-results")
 public class GameResultController {
+    /** Longest accepted player name (the game limits the input field to 12). */
+    static final int MAX_PLAYER_NAME_LENGTH = 50;
 
     @Autowired
     private GameResultRepository gameResultRepository;
@@ -49,55 +55,55 @@ public class GameResultController {
     }
 
     /**
-     * Create a new game result
+     * Create a new game result; the player and the level are created on first use.
      */
     @PostMapping
-    public ResponseEntity<GameResultDto> createGameResult(@RequestBody GameResult gameResult) {
-        gameResult.setId(null);
-        if (gameResult.getPlayedAt() == null) {
-            gameResult.setPlayedAt(LocalDateTime.now());
+    @Transactional
+    public ResponseEntity<GameResultDto> createGameResult(@RequestBody GameResultRequest request) {
+        validate(request);
+        if (request.score() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "score is required");
         }
-        setPlayer(gameResult);
-        setGameLevel(gameResult);
-        GameResult savedResult = gameResultRepository.save(gameResult);
-        return ResponseEntity.status(HttpStatus.CREATED).body(toDto(savedResult));
+        GameResult gameResult = new GameResult();
+        gameResult.setScore(request.score());
+        gameResult.setPlayedAt(request.playedAt() != null ? request.playedAt() : LocalDateTime.now());
+        gameResult.setDuration(request.duration());
+        gameResult.setDeaths(request.deaths());
+        gameResult.setPlayer(findOrCreatePlayer(request.playerName()));
+        gameResult.setGameLevel(findOrCreateLevel(request.level()));
+
+        GameResult saved = gameResultRepository.save(gameResult);
+        return ResponseEntity.created(URI.create("/api/v1/game-results/" + saved.getId())).body(toDto(saved));
     }
 
     /**
-     * Update an existing game result
+     * Update an existing game result; fields that are not sent keep their value.
      */
     @PutMapping("/{id}")
-    public ResponseEntity<GameResultDto> updateGameResult(@PathVariable Long id, @RequestBody GameResult gameResultDetails) {
-        Optional<GameResult> existingResult = gameResultRepository.findById(id);
-
-        if (existingResult.isPresent()) {
-            GameResult gameResult = existingResult.get();
-            if (gameResultDetails.getPlayerName() != null) {
-                gameResult.setPlayerName(gameResultDetails.getPlayerName());
-                setPlayer(gameResult);
+    @Transactional
+    public ResponseEntity<GameResultDto> updateGameResult(@PathVariable Long id, @RequestBody GameResultRequest request) {
+        validate(request);
+        return gameResultRepository.findById(id).map(gameResult -> {
+            if (request.playerName() != null) {
+                gameResult.setPlayer(findOrCreatePlayer(request.playerName()));
             }
-            if (gameResultDetails.getScore() != null) {
-                gameResult.setScore(gameResultDetails.getScore());
+            if (request.score() != null) {
+                gameResult.setScore(request.score());
             }
-            if (gameResultDetails.getPlayedAt() != null) {
-                gameResult.setPlayedAt(gameResultDetails.getPlayedAt());
+            if (request.playedAt() != null) {
+                gameResult.setPlayedAt(request.playedAt());
             }
-            if (gameResultDetails.getLevel() != null) {
-                gameResult.setLevel(gameResultDetails.getLevel());
-                setGameLevel(gameResult);
+            if (request.level() != null) {
+                gameResult.setGameLevel(findOrCreateLevel(request.level()));
             }
-            if (gameResultDetails.getDuration() != null) {
-                gameResult.setDuration(gameResultDetails.getDuration());
+            if (request.duration() != null) {
+                gameResult.setDuration(request.duration());
             }
-            if (gameResultDetails.getDeaths() != null) {
-                gameResult.setDeaths(gameResultDetails.getDeaths());
+            if (request.deaths() != null) {
+                gameResult.setDeaths(request.deaths());
             }
-
-            GameResult updatedResult = gameResultRepository.save(gameResult);
-            return ResponseEntity.ok(toDto(updatedResult));
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+            return ResponseEntity.ok(toDto(gameResultRepository.save(gameResult)));
+        }).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     /**
@@ -143,55 +149,49 @@ public class GameResultController {
     private static GameResultDto toDto(GameResult result) {
         return new GameResultDto(
                 result.getId(),
-                resolvePlayerName(result),
+                result.getPlayer() == null ? null : result.getPlayer().getName(),
                 result.getScore(),
                 result.getPlayedAt(),
-                resolveLevelNumber(result),
+                result.getGameLevel() == null ? null : result.getGameLevel().getLevelNumber(),
                 result.getDuration(),
                 result.getDeaths()
         );
     }
 
-    private static String resolvePlayerName(GameResult result) {
-        if (result.getPlayerName() != null && !result.getPlayerName().isBlank()) {
-            return result.getPlayerName();
+    private static void validate(GameResultRequest request) {
+        String problem = request.problem();
+        if (problem != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, problem);
         }
-        return result.getPlayer() == null ? null : result.getPlayer().getName();
     }
 
-    private static Integer resolveLevelNumber(GameResult result) {
-        if (result.getLevel() != null) {
-            return result.getLevel();
+    /** Returns the player with this name, creating it on first use; a missing name means "anonymous". */
+    private Player findOrCreatePlayer(String name) {
+        if (name == null) {
+            return null;
         }
-        return result.getGameLevel() == null ? null : result.getGameLevel().getLevelNumber();
+        return playerRepository.findByName(name).orElseGet(() -> playerRepository.save(new Player(name)));
     }
 
-    private void setPlayer(GameResult gameResult) {
-        if (gameResult.getPlayerName() == null || gameResult.getPlayerName().isBlank()) {
-            gameResult.setPlayer(null);
-            return;
+    private GameLevel findOrCreateLevel(Integer levelNumber) {
+        if (levelNumber == null) {
+            return null;
         }
-        Player player = playerRepository.findByName(gameResult.getPlayerName())
-                .orElseGet(() -> playerRepository.save(new Player(gameResult.getPlayerName())));
-        gameResult.setPlayer(player);
+        return gameLevelRepository.findByLevelNumber(levelNumber)
+                .orElseGet(() -> gameLevelRepository.save(new GameLevel(levelNumber, "Level " + levelNumber)));
     }
 
-    private void setGameLevel(GameResult gameResult) {
-        if (gameResult.getLevel() == null) {
-            gameResult.setGameLevel(null);
-            return;
-        }
-        GameLevel gameLevel = gameLevelRepository.findByLevelNumber(gameResult.getLevel())
-                .orElseGet(() -> gameLevelRepository.save(new GameLevel(gameResult.getLevel(),
-                        "Level " + gameResult.getLevel())));
-        gameResult.setGameLevel(gameLevel);
+    /** Two requests creating the same new player or level at once: the loser should simply retry. */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Void> onConflict() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).build();
     }
 
     public record GameResultDto(
             Long id,
             String playerName,
             Integer score,
-            java.time.LocalDateTime playedAt,
+            LocalDateTime playedAt,
             Integer level,
             Double duration,
             Integer deaths

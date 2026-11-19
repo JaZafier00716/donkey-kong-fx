@@ -1,8 +1,14 @@
 package cz.vsb.fei.donkeykong.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
@@ -18,25 +24,17 @@ public class GameResult {
     @EqualsAndHashCode.Include
     private Long id;
 
-    @Transient
-    private String playerName;
-
     private Integer score;
 
     private LocalDateTime playedAt;
-
-    @Transient
-    private Integer level;
 
     private Double duration;
 
     private Integer deaths;
 
-    @JsonIgnore
     @ManyToOne
     private Player player;
 
-    @JsonIgnore
     @ManyToOne
     private GameLevel gameLevel;
 }
