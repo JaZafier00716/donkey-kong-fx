@@ -5,7 +5,7 @@
 
     <groupId>cz.vsb.fei</groupId>
     <artifactId>DonkeyKongFX</artifactId>
-    <version>0.0.1-SNAPHOST</version>
+    <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>DonkeyKong Multi-Service Application</name>
     <description>Parent POM for multi-module DonkeyKong application</description>
@@ -22,20 +22,7 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <lombok.version>1.18.42</lombok.version>
-        <spring.boot.version>3.3.0</spring.boot.version>
     </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>${spring.boot.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <build>
         <pluginManagement>
@@ -56,20 +43,8 @@
                         </annotationProcessorPaths>
                     </configuration>
                 </plugin>
-                <plugin>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-maven-plugin</artifactId>
-                    <version>${spring.boot.version}</version>
-                </plugin>
             </plugins>
         </pluginManagement>
     </build>
-
-    <repositories>
-        <repository>
-            <id>vsb-education-release</id>
-            <url>https://artifactory.cs.vsb.cz/repository/education-releases/</url>
-        </repository>
-    </repositories>
 
 </project>

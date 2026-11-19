@@ -1,14 +1,29 @@
 target/
 *.lock.db
 *.trace.db
+
+### Created while running the project (not source) ###
+# H2 database files of donkeykong-db (./db/score-db)
+db/
+*.mv.db
+# game: save file, key bindings and language, local scores
+state.bin
 keybindings.cfg
 settings.cfg
+high-score.csv
+# one-off exports
+*.zip
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 .kotlin
 
 ### IntelliJ IDEA ###
+# personal IDE state; the shared run configurations and project settings stay tracked
+.idea/vcs.xml
+.idea/copilot.data.migration.*.xml
+.idea/material_theme_project_new.xml
+.idea/dictionaries/
 .idea/modules.xml
 .idea/jarRepositories.xml
 .idea/compiler.xml
