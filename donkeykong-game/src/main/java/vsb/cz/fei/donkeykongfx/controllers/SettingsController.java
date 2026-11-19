@@ -13,6 +13,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import lombok.extern.log4j.Log4j2;
 import vsb.cz.fei.donkeykongfx.I18n;
+import vsb.cz.fei.donkeykongfx.view.Dialogs;
 import vsb.cz.fei.donkeykongfx.settings.KeyBindingRow;
 import vsb.cz.fei.donkeykongfx.settings.KeyBindingsException;
 import vsb.cz.fei.donkeykongfx.settings.KeyBindingsRepository;
@@ -142,7 +143,7 @@ public class SettingsController extends SettingsAffected {
             keyBindings.setKeyForAction(action, newKey);
         } catch (Exception e) {
             log.warn("Handled key binding conflict for action {} with key {}", action, newKey, e);
-            Alert alert = new Alert(Alert.AlertType.WARNING);
+            Alert alert = Dialogs.style(new Alert(Alert.AlertType.WARNING));
             alert.setHeaderText(I18n.get("settings.keyBindingConflict"));
             alert.setContentText(e.getMessage());
             alert.showAndWait();
@@ -175,7 +176,7 @@ public class SettingsController extends SettingsAffected {
                 .orElse(languageSelect.getItems().getFirst()));
         languageSelect.setOnAction(event -> saveLanguage(languageSelect.getValue()));
         VBox box = new VBox(16, label, languageSelect);
-        box.setStyle("-fx-padding: 24;");
+        box.getStyleClass().add("dk-pane");
         return box;
     }
 

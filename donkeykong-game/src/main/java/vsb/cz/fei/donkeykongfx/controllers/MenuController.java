@@ -26,6 +26,8 @@ public class MenuController extends ResizableController {
     private DonkeyKong menuDonkeyKong;
     private long lastFrame = 0;
     private static final int MAX_PLAYER_NAME_LENGTH = 12;
+    /** Marks the name box when "Start" is pressed without a name (see application.css). */
+    private static final String INVALID_STYLE = "dk-invalid";
     private static final int LEADERBOARD_SIZE = 5;
     private String savedPlayerName;
 
@@ -87,7 +89,9 @@ public class MenuController extends ResizableController {
     @FXML
     void onBtnStart() {
         if (playerNameField.getText().isBlank()) {
-            playerNameField.setStyle("-fx-prompt-text-fill: red;");
+            if (!playerNameField.getStyleClass().contains(INVALID_STYLE)) {
+                playerNameField.getStyleClass().add(INVALID_STYLE);
+            }
             log.warn("Start blocked because player name is blank");
             return;
         }
@@ -150,7 +154,7 @@ public class MenuController extends ResizableController {
         // Limit player name length
         playerNameField.setTextFormatter(new TextFormatter<String>(change -> {
             if(!change.getControlNewText().isBlank()) {
-                playerNameField.setStyle("-fx-prompt-text-fill: black;");
+                playerNameField.getStyleClass().remove(INVALID_STYLE);
             }
             if (change.getControlNewText().length() <= MAX_PLAYER_NAME_LENGTH) {
                 return change;

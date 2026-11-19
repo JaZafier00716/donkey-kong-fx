@@ -15,17 +15,17 @@
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.StackPane?>
 
-<BorderPane stylesheets="@application.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="vsb.cz.fei.donkeykongfx.controllers.SettingsController">
+<BorderPane styleClass="dk-screen" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="vsb.cz.fei.donkeykongfx.controllers.SettingsController">
    <center>
       <StackPane>
          <children>
-            <TabPane fx:id="SettingsTabs" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" tabClosingPolicy="UNAVAILABLE">
+            <TabPane fx:id="SettingsTabs" tabClosingPolicy="UNAVAILABLE">
               <tabs>
                 <Tab text="%settings.keyBindings">
                   <content>
-                    <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                    <AnchorPane minHeight="0.0" minWidth="0.0">
                            <children>
-                              <TableView fx:id="KeyBindingsTable" prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                              <TableView fx:id="KeyBindingsTable" styleClass="dk-table, dk-table-large" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                                 <columns>
                                   <TableColumn fx:id="columnAction" prefWidth="75.0" text="%settings.actions" />
                                   <TableColumn fx:id="columnKey" prefWidth="75.0" text="%settings.key" />
@@ -40,26 +40,25 @@
                   </content>
                 </Tab>
               </tabs>
+               <StackPane.margin>
+                  <Insets bottom="32.0" left="32.0" right="32.0" top="8.0" />
+               </StackPane.margin>
             </TabPane>
             <BorderPane fx:id="ChangeKeyWindow" disable="true" opacity="0.0" visible="false">
                <center>
-                  <GridPane maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="80.0" prefWidth="150.0" style="-fx-background-color: #333333;" BorderPane.alignment="CENTER">
+                  <GridPane hgap="16.0" maxHeight="-Infinity" maxWidth="-Infinity" styleClass="dk-panel" vgap="24.0" BorderPane.alignment="CENTER">
                     <columnConstraints>
-                      <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
-                      <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                      <ColumnConstraints hgrow="NEVER" minWidth="-Infinity" />
+                      <ColumnConstraints hgrow="SOMETIMES" minWidth="-Infinity" prefWidth="220.0" />
                     </columnConstraints>
                     <rowConstraints>
-                      <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                      <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                      <RowConstraints vgrow="NEVER" />
+                      <RowConstraints vgrow="NEVER" />
                     </rowConstraints>
                      <children>
                         <Label fx:id="ChangeKeyActionLabel" text="%settings.actions" />
                         <TextField fx:id="ChangeKeyKeyLabel" GridPane.columnIndex="1" />
-                        <BorderPane prefHeight="86.0" prefWidth="75.0" GridPane.columnSpan="2" GridPane.rowIndex="1">
-                           <center>
-                              <Button fx:id="ChangeKeySaveButton" mnemonicParsing="false" text="%settings.saveKeyBind" />
-                           </center>
-                        </BorderPane>
+                        <Button fx:id="ChangeKeySaveButton" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="%settings.saveKeyBind" GridPane.columnSpan="2" GridPane.rowIndex="1" />
                      </children>
                   </GridPane>
                </center>
@@ -68,9 +67,9 @@
       </StackPane>
    </center>
    <top>
-      <Button mnemonicParsing="false" onAction="#OnBackToMenu" text="%settings.backToMenu" BorderPane.alignment="CENTER_LEFT">
+      <Button mnemonicParsing="false" onAction="#OnBackToMenu" styleClass="dk-button-secondary" text="%settings.backToMenu" BorderPane.alignment="CENTER_LEFT">
          <BorderPane.margin>
-            <Insets left="10.0" top="10.0" />
+            <Insets left="32.0" top="24.0" />
          </BorderPane.margin>
       </Button>
    </top>

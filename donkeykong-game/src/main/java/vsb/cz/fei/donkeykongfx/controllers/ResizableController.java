@@ -14,6 +14,7 @@ import lombok.extern.log4j.Log4j2;
 import vsb.cz.fei.donkeykongfx.App;
 import vsb.cz.fei.donkeykongfx.DrawingTimer;
 import vsb.cz.fei.donkeykongfx.I18n;
+import vsb.cz.fei.donkeykongfx.view.Dialogs;
 import vsb.cz.fei.donkeykongfx.levels.Level;
 import vsb.cz.fei.donkeykongfx.view.Letterbox;
 
@@ -41,7 +42,7 @@ public abstract class ResizableController {
           message = e.getClass().getSimpleName();
         }
         log.warn("Handled UI exception shown to the player: {}", message, e);
-        Alert alert = new Alert(Alert.AlertType.WARNING);
+        Alert alert = Dialogs.style(new Alert(Alert.AlertType.WARNING));
         alert.setHeaderText(I18n.get("alert.loadingProblem"));
         alert.getDialogPane().setContentText(message);
         // expandable stacktrace detail
