@@ -12,8 +12,8 @@
         <p class="subtitle" th:text="#{dashboard.subtitle}">Best game statistics</p>
 
         <div class="nav-tabs">
-            <a href="/ui/dashboard" class="nav-link active" th:text="#{nav.dashboard}">Dashboard</a>
-            <a href="/ui/game-results" class="nav-link" th:text="#{nav.gameResults}">Game Results</a>
+            <a th:href="@{/ui/dashboard}" href="/ui/dashboard" class="nav-link active" th:text="#{nav.dashboard}">Dashboard</a>
+            <a th:href="@{/ui/game-results}" href="/ui/game-results" class="nav-link" th:text="#{nav.gameResults}">Game Results</a>
             <form class="language-form" method="get">
                 <label for="language" th:text="#{language.label}">Language</label>
                 <select id="language" name="lang" onchange="this.form.submit()">
@@ -24,33 +24,35 @@
             </form>
         </div>
 
+        <div class="error-banner" th:if="${error != null}" th:text="#{${error}}">Could not load data.</div>
+
         <div class="stats">
             <div class="stat-card">
                 <h3 th:text="#{dashboard.fastestTime}">Fastest Time</h3>
                 <div class="value" th:if="${fastestGame != null}" th:text="${fastestTime}">0.000 s</div>
-                <div class="value" th:if="${fastestGame == null}">N/A</div>
+                <div class="value" th:if="${fastestGame == null}" th:text="#{common.na}">N/A</div>
                 <p class="stat-detail" th:if="${fastestGame != null}" th:text="${fastestGame.playerName}">Player</p>
             </div>
             <div class="stat-card">
                 <h3 th:text="#{dashboard.mostGames}">Most Games</h3>
                 <div class="value" th:if="${mostGamesPlayer != null}" th:text="${mostGamesCount}">0</div>
-                <div class="value" th:if="${mostGamesPlayer == null}">N/A</div>
+                <div class="value" th:if="${mostGamesPlayer == null}" th:text="#{common.na}">N/A</div>
                 <p class="stat-detail" th:if="${mostGamesPlayer != null}" th:text="${mostGamesPlayer}">Player</p>
             </div>
             <div class="stat-card">
                 <h3 th:text="#{dashboard.highestScore}">Highest Score</h3>
                 <div class="value" th:if="${highestScoreGame != null}" th:text="${highestScoreGame.score}">0</div>
-                <div class="value" th:if="${highestScoreGame == null}">N/A</div>
+                <div class="value" th:if="${highestScoreGame == null}" th:text="#{common.na}">N/A</div>
                 <p class="stat-detail" th:if="${highestScoreGame != null}" th:text="${highestScoreGame.playerName}">Player</p>
             </div>
         </div>
 
         <div class="controls">
             <button class="btn btn-primary" onclick="location.reload()" th:text="#{button.refresh}">Refresh</button>
-            <a href="/ui/game-results" class="btn btn-primary" th:text="#{button.viewGameResults}">View Game Results</a>
+            <a th:href="@{/ui/game-results}" href="/ui/game-results" class="btn btn-primary" th:text="#{button.viewGameResults}">View Game Results</a>
         </div>
 
-        <div th:if="${totalGames == null || totalGames == 0}" class="empty-state">
+        <div th:if="${error == null && (totalGames == null || totalGames == 0)}" class="empty-state">
             <h2 th:text="#{dashboard.noGamesTitle}">No Games Yet</h2>
             <p th:text="#{dashboard.noGamesText}">There are no game results in the database.</p>
         </div>
@@ -58,8 +60,8 @@
         <div class="footer">
             <p th:text="#{dashboard.footer}">Donkey Kong Dashboard</p>
             <p>
-                <a href="http://localhost:8080/swagger-ui.html" th:text="#{link.dbDocs}">Database API Documentation</a> |
-                <a href="http://localhost:8080" th:text="#{link.dbApi}">Database API</a>
+                <a th:href="${dbUrl} + '/swagger-ui.html'" href="http://localhost:8080/swagger-ui.html" th:text="#{link.dbDocs}">Database API Documentation</a> |
+                <a th:href="${dbUrl}" href="http://localhost:8080" th:text="#{link.dbApi}">Database API</a>
             </p>
         </div>
     </div>

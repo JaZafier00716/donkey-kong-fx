@@ -1,5 +1,6 @@
-package cz.vsb.fei.DonkeyKongFX.entity;
+package cz.vsb.fei.DonkeyKongFX.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,9 +9,10 @@ import java.time.LocalDateTime;
 
 /**
  * Data Transfer Object (DTO) for Game Results.
- * This mirrors the entity in the donkeykong-db service.
+ * This mirrors the result JSON of the donkeykong-db service.
  */
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class GameResult {

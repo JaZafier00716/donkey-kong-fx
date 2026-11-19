@@ -4,9 +4,9 @@ server:
 spring:
   application:
     name: donkeykong-web
-  mvc:
-    path-match:
-      matching-strategy: ant_path_matcher
+  messages:
+    # without this an English visitor gets Czech on a Czech computer: there is no messages_en file
+    fallback-to-system-locale: false
 
 # Configuration for connecting to the donkeykong-db service
 donkeykong:

@@ -12,8 +12,8 @@
         <p class="subtitle" th:text="#{gameResults.subtitle}">View all games played</p>
 
         <div class="nav-tabs">
-            <a href="/ui/dashboard" class="nav-link" th:text="#{nav.dashboard}">Dashboard</a>
-            <a href="/ui/game-results" class="nav-link active" th:text="#{nav.gameResults}">Game Results</a>
+            <a th:href="@{/ui/dashboard}" href="/ui/dashboard" class="nav-link" th:text="#{nav.dashboard}">Dashboard</a>
+            <a th:href="@{/ui/game-results}" href="/ui/game-results" class="nav-link active" th:text="#{nav.gameResults}">Game Results</a>
             <form class="language-form" method="get">
                 <input type="hidden" name="player" th:value="${searchPlayer}">
                 <input type="hidden" name="sort" th:value="${sort}">
@@ -27,6 +27,8 @@
             </form>
         </div>
 
+        <div class="error-banner" th:if="${error != null}" th:text="#{${error}}">Could not load data.</div>
+
         <div class="stats">
             <div class="stat-card">
                 <h3 th:text="#{gameResults.totalGames}">Total Games</h3>
@@ -34,24 +36,24 @@
             </div>
             <div class="stat-card">
                 <h3 th:text="#{dashboard.highestScore}">Highest Score</h3>
-                <div class="value" th:text="${highestScore ?: 'N/A'}">N/A</div>
+                <div class="value" th:text="${highestScore != null ? highestScore : #messages.msg('common.na')}">N/A</div>
             </div>
             <div class="stat-card">
                 <h3 th:text="#{gameResults.topPlayer}">Top Player</h3>
-                <div class="value" th:text="${topPlayer ?: 'None'}">None</div>
+                <div class="value" th:text="${topPlayer != null ? topPlayer : #messages.msg('common.none')}">None</div>
             </div>
         </div>
 
-        <form class="search-form" action="/ui/game-results" method="get">
+        <form class="search-form" th:action="@{/ui/game-results}" action="/ui/game-results" method="get">
             <input type="text" name="player" th:placeholder="#{gameResults.searchPlaceholder}" placeholder="Search player game history" th:value="${searchPlayer}">
             <button class="btn btn-primary" type="submit" th:text="#{button.search}">Search</button>
-            <a th:if="${searchPlayer != null && !#strings.isEmpty(searchPlayer)}" href="/ui/game-results" class="btn btn-warning" th:text="#{button.clear}">Clear</a>
+            <a th:if="${searchPlayer != null && !#strings.isEmpty(searchPlayer)}" th:href="@{/ui/game-results}" href="/ui/game-results" class="btn btn-warning" th:text="#{button.clear}">Clear</a>
         </form>
 
         <div class="controls">
             <button class="btn btn-primary" onclick="location.reload()" th:text="#{button.refresh}">Refresh</button>
             <button class="btn btn-warning" onclick="confirmDeleteAll()" th:text="#{button.deleteAll}">Delete All</button>
-            <a href="/ui/dashboard" class="btn btn-secondary" th:text="#{button.viewDashboard}">View Dashboard</a>
+            <a th:href="@{/ui/dashboard}" href="/ui/dashboard" class="btn btn-secondary" th:text="#{button.viewDashboard}">View Dashboard</a>
         </div>
 
         <div th:if="${gameResults.size() > 0}">
@@ -103,16 +105,16 @@
                         <td class="rank" th:text="${status.count}">1</td>
                         <td th:text="${result.playerName}">Unknown</td>
                         <td class="score-cell" th:text="${result.score}">0</td>
-                        <td th:text="${result.level ?: 'N/A'}">N/A</td>
-                        <td th:text="${result.duration != null ? #numbers.formatDecimal(result.duration, 1, 3) : 'N/A'}">N/A</td>
-                        <td th:text="${result.deaths ?: 'N/A'}">N/A</td>
+                        <td th:text="${result.level != null ? result.level : #messages.msg('common.na')}">N/A</td>
+                        <td th:text="${result.duration != null ? #numbers.formatDecimal(result.duration, 1, 3) : #messages.msg('common.na')}">N/A</td>
+                        <td th:text="${result.deaths != null ? result.deaths : #messages.msg('common.na')}">N/A</td>
                         <td>
                             <span th:text="${result.playedAt != null ? #temporals.format(result.playedAt, 'dd.MM.yyyy HH:mm:ss') : '-'}" class="date-time">-</span>
                         </td>
                         <td>
                             <div class="actions">
                                 <form th:action="@{/ui/game-results/{id}/delete(id=${result.id})}" method="post" class="inline-form">
-                                    <button type="submit" class="btn btn-danger" th:onclick="|return confirm('#{confirm.deleteResult}')|" th:text="#{button.delete}">Delete</button>
+                                    <button type="submit" class="btn btn-danger" th:data-confirm="#{confirm.deleteResult}" onclick="return confirm(this.dataset.confirm)" th:text="#{button.delete}">Delete</button>
                                 </form>
                             </div>
                         </td>
@@ -121,7 +123,7 @@
             </table>
         </div>
 
-        <div th:if="${gameResults.isEmpty()}" class="empty-state">
+        <div th:if="${error == null && gameResults.isEmpty()}" class="empty-state">
             <h2 th:text="#{gameResults.noResultsTitle}">No Game Results Yet</h2>
             <p th:text="#{gameResults.noResultsText}">There are no game results in the database. Play the game and record your first result!</p>
         </div>
@@ -129,9 +131,9 @@
         <div class="footer">
             <p th:text="#{gameResults.footer}">Donkey Kong Game Results Manager</p>
             <p>
-                <a href="http://localhost:8080/swagger-ui.html" th:text="#{link.dbDocs}">Database API Documentation</a> |
-                <a href="http://localhost:8080" th:text="#{link.dbApi}">Database API</a> |
-                <a href="http://localhost:8081" th:text="#{link.webServer}">Web Server</a>
+                <a th:href="${dbUrl} + '/swagger-ui.html'" href="http://localhost:8080/swagger-ui.html" th:text="#{link.dbDocs}">Database API Documentation</a> |
+                <a th:href="${dbUrl}" href="http://localhost:8080" th:text="#{link.dbApi}">Database API</a> |
+                <a th:href="@{/}" href="/" th:text="#{link.webServer}">Web Server</a>
             </p>
         </div>
     </div>
@@ -140,7 +142,7 @@
         function confirmDeleteAll() {
             const message = /*[[#{confirm.deleteAll}]]*/ 'Are you absolutely sure you want to delete ALL game results? This cannot be undone!';
             if (confirm(message)) {
-                fetch('/ui/game-results/delete-all', {
+                fetch(/*[[@{/ui/game-results/delete-all}]]*/ '/ui/game-results/delete-all', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
