@@ -1,319 +1,491 @@
-/* css */
+/*
+ * Donkey Kong FX - one arcade look for every screen (menu, options, pause, game over, dialogs).
+ *
+ * Palette (looked-up colours, defined once on .root and used everywhere below):
+ *   -dk-bg / -dk-panel   near-black screen and panel backgrounds
+ *   -dk-red / -dk-orange logo and button colours (the Donkey Kong logo is red with an orange edge)
+ *   -dk-text / -dk-muted light text for dark backgrounds (contrast >= 8:1)
+ * Red text is NOT used for small text on dark backgrounds (it is only 2.5:1); headings use orange
+ * (5.4:1 on -dk-bg) and body text uses -dk-text.
+ *
+ * Reusable style classes:
+ *   .dk-title                  big logo text (Text node)
+ *   .dk-heading                orange section heading
+ *   .dk-panel / .dk-pane       framed panel / padded content pane
+ *   .button                    primary button (red, orange lip); modifiers .dk-button-large,
+ *                              .dk-button-secondary, .dk-button-small
+ *   .text-field, .combo-box    dark inputs with an orange frame, light frame on focus
+ *   .tab-pane                  orange tab strip
+ *   .dk-table                  table / list (modifier .dk-table-large for bigger rows)
+ *   .dk-invalid                marks a rejected input (set from code)
+ *
+ * Keep font sizes at multiples of 8 where possible: "Press Start 2P" is an 8x8 pixel font.
+ */
 
-/* Basic UI elements (buttons, title) */
-#button {
-    -fx-padding: 8 15 15 15;
-    -fx-background-insets: 0, 5 0 0 0, 6 0 0 0, 7 0 0 0;
-    -fx-background-radius: 0;
-    -fx-background-color:
-            #E16600,
-            #A70000;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.75), 10, 0, 0, -1);
-}
+.root {
+    -dk-bg: #121212;
+    -dk-panel: #222222;
+    -dk-panel-hover: #3A3A3A;
+    -dk-red: #AB0507;
+    -dk-red-hover: #C8100F;
+    -dk-red-pressed: #7E0000;
+    -dk-orange: #E16600;
+    -dk-orange-light: #FF7F29;
+    -dk-text: #E1E1FF;
+    -dk-muted: #B8B8D8;
+    -dk-error: #FF6B6B;
 
-#button:hover {
-    -fx-background-color: #A70000;
-}
-
-#button:pressed {
-    -fx-padding: 10 15 13 15;
-    -fx-background-insets: 2 0 0 0, 2 0 3 0, 2 0 4 0, 2 0 5 0;
-}
-
-#button .text {
     -fx-font-family: "Press Start 2P";
-    -fx-font-weight: bold;
-    -fx-font-smoothing-type: none;
-    -fx-fill: #E1E1FF;
-    -fx-effect: dropshadow(gaussian, #AB0507, 0, 0, 0, 2);
-    -fx-translate-y: 5;
-    -fx-font-size: 24;
+    -fx-font-size: 16px;
+    -fx-font-smoothing-type: gray;
+    /* replaces the blue Modena focus ring wherever it is not overridden below */
+    -fx-focus-color: -dk-orange-light;
+    -fx-faint-focus-color: transparent;
+    -fx-accent: -dk-red;
+    -fx-text-fill: -dk-text;
 }
 
-#titleText {
+/* ---------- text ---------- */
+
+.label, .text-input, .dialog-pane .content {
+    -fx-text-fill: -dk-text;
+}
+
+.dk-title {
     -fx-font-family: "Press Start 2P";
     -fx-font-weight: bold;
     -fx-font-smoothing-type: none;
     -fx-font-size: 96;
-    -fx-fill: #AB0507;
-    -fx-effect: dropshadow(gaussian, #E16600, 0, 0, 0, -5);
+    -fx-fill: -dk-red;
+    -fx-effect: dropshadow(gaussian, -dk-orange, 0, 0, 0, -5);
 }
 
-/* -------------------------
-   Score table - base
-   ------------------------- */
-#scoreTable {
-    -fx-font-family: "Press Start 2P";
-    -fx-font-size: 8;
-    -fx-padding: 0;
-    -fx-background-color: transparent;
-    -fx-background-insets: 0;
+.dk-heading {
+    -fx-font-size: 24;
+    -fx-text-fill: -dk-orange;
+    -fx-fill: -dk-orange;
+}
+
+.dk-muted {
+    -fx-text-fill: -dk-muted;
+}
+
+/* ---------- panels ---------- */
+
+.dk-panel {
+    -fx-background-color: -dk-orange, -dk-panel;
+    -fx-background-insets: 0, 3;
+    -fx-padding: 28;
+}
+
+.dk-pane {
+    -fx-padding: 24;
+    -fx-spacing: 16;
+}
+
+.dk-screen {
+    -fx-background-color: -dk-bg;
+}
+
+/* dimmed full-screen layer behind pause / game over / key capture panels */
+.dk-overlay {
+    -fx-background-color: rgba(18, 18, 18, 0.88);
+}
+
+/* ---------- buttons ---------- */
+
+.button {
+    -fx-background-color: -dk-orange, -dk-red;
+    -fx-background-insets: 0, 4 0 0 0;
     -fx-background-radius: 0;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.75), 10, 0, 0, -1);
-}
-
-/* Optional background helpers */
-#scoreTable.bg-inherit {
-    -fx-background-color: -fx-control-inner-background;
-}
-#scoreTable.bg-dark {
-    -fx-background-color: #121212;
-}
-
-/* Force transparency for nested layers (consolidated) */
-#scoreTable,
-#scoreTable .table-view,
-#scoreTable .virtual-flow,
-#scoreTable .scroll-pane,
-#scoreTable .scroll-pane .viewport,
-#scoreTable .column-header-background,
-#scoreTable .table-header-row,
-#scoreTable .table-row-cell,
-#scoreTable .table-cell,
-#scoreTable .filler {
-    -fx-background-color: transparent;
-    -fx-background: transparent;
-    -fx-control-inner-background: transparent;
-    -fx-background-insets: 0;
-}
-
-/* Hide filler borders that create phantom separators */
-#scoreTable .filler,
-#scoreTable .virtual-flow .filler {
     -fx-border-color: transparent;
-    -fx-border-width: 0;
+    -fx-border-width: 3;
+    -fx-border-radius: 0;
+    -fx-padding: 14 20 12 20;
+    -fx-text-fill: -dk-text;
+    -fx-font-size: 16;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.75), 10, 0, 0, -1);
 }
 
-/* Base header / cell layout and text targeting (explicitly include internal text node) */
-#scoreTable .column-header,
-#scoreTable .column-header .label,
-#scoreTable .table-cell,
-#scoreTable .table-cell .text {
-    -fx-background-color: transparent;
-    -fx-padding: 6 12;
+.button .text {
+    -fx-fill: -dk-text;
+    -fx-font-smoothing-type: none;
+    -fx-effect: dropshadow(gaussian, -dk-red-pressed, 0, 0, 0, 2);
+}
+
+.button:hover {
+    -fx-background-color: -dk-orange-light, -dk-red-hover;
+}
+
+.button:pressed {
+    -fx-background-color: -dk-orange, -dk-red-pressed;
+    -fx-padding: 16 20 10 20;
+}
+
+/* light frame so the keyboard focus is obvious on every button */
+.button:focused {
+    -fx-border-color: -dk-text;
+}
+
+.button:disabled {
+    -fx-opacity: 0.5;
+}
+
+.dk-button-large {
+    -fx-font-size: 24;
+    -fx-min-width: 320;
+}
+
+.dk-button-secondary {
+    -fx-background-color: -dk-orange, -dk-panel;
+    -fx-background-insets: 0, 2;
+    -fx-padding: 10 16 10 16;
+    -fx-effect: none;
+}
+
+.dk-button-secondary .text {
+    -fx-effect: none;
+}
+
+.dk-button-secondary:hover {
+    -fx-background-color: -dk-orange-light, -dk-panel-hover;
+}
+
+.dk-button-secondary:pressed {
+    -fx-background-color: -dk-orange, -dk-bg;
+    -fx-padding: 10 16 10 16;
+}
+
+.dk-button-small {
     -fx-font-size: 12;
-    -fx-border-color: transparent;
-    -fx-border-width: 0;
+    -fx-padding: 8 12 8 12;
 }
 
-/* Ensure header row and header background don't draw competing borders */
-#scoreTable .table-header-row,
-#scoreTable .column-header-background {
-    -fx-background-color: transparent;
-    -fx-border-color: transparent;
-    -fx-border-width: 0;
+.dk-button-small:pressed {
+    -fx-padding: 9 12 7 12;
 }
 
-/* Header divider baseline (variant will set bottom color) */
-#scoreTable .column-header-background {
-    -fx-border-width: 0 0 2 0; /* bottom divider baseline */
-    -fx-border-color: transparent transparent transparent transparent;
+/* ---------- text input ---------- */
+
+.text-field {
+    -fx-background-color: -dk-orange, -dk-panel;
+    -fx-background-insets: 0, 3;
+    -fx-background-radius: 0;
+    -fx-prompt-text-fill: -dk-muted;
+    -fx-highlight-fill: -dk-orange;
+    -fx-highlight-text-fill: -dk-bg;
+    -fx-padding: 12 14 12 14;
+    -fx-font-size: 16;
 }
 
-/* Header text behavior: prefer graphic Label for wrapping in code.
-   CSS here disables ellipsis clipping if label supports it and sets clip as fallback. */
-#scoreTable .column-header .label {
-    -fx-wrap-text: true;
-    -fx-text-overrun: clip;
-    -fx-alignment: center;
-    -fx-padding: 4;
-}/* css - add to `src/main/resources/application.css` */
-
-#scoreTable .table-row-cell,
-#scoreTable .table-cell {
-    -fx-alignment: center-left; /* vertical center, left horizontal */
-    -fx-min-height: 28;
+.text-field:focused {
+    -fx-background-color: -dk-text, -dk-panel;
 }
 
-/* If cells use a Label as graphic, ensure the Label is centered vertically too */
-#scoreTable .table-cell .label {
-    -fx-alignment: center-left;
-    -fx-wrap-text: true;       /* allow wrapping without breaking alignment */
-    -fx-max-height: Infinity;
+.text-field.dk-invalid {
+    -fx-background-color: -dk-error, -dk-panel;
+    -fx-prompt-text-fill: -dk-error;
 }
 
-/* Internal text node fallback */
-#scoreTable .table-cell .text {
-    -fx-translate-y: 0;        /* ensure no vertical offset */
-    -fx-alignment: center-left;
+.text-field.dk-invalid:focused {
+    -fx-background-color: -dk-error, -dk-panel;
 }
 
-/* Placeholder styling */
-#scoreTable .placeholder {
-    -fx-font-family: "Press Start 2P";
-    -fx-font-size: 20;
-    -fx-text-fill: #AB0507;
-}
-
-/* -------------------------
-   RED VARIANT (text red, borders orange)
-   Use: scoreTable.getStyleClass().add("red-style")
-   ------------------------- */
-#scoreTable.red-style {
-    -fx-border-color: #E16600;
-    -fx-border-width: 2;
-    -fx-background-color: transparent;
-}
-
-/* header divider color for red variant */
-#scoreTable.red-style .column-header-background {
-    -fx-border-color: transparent transparent #E16600 transparent;
-}
-
-/* header text and vertical separators (right border on headers) */
-#scoreTable.red-style .column-header,
-#scoreTable.red-style .column-header .label {
-    -fx-text-fill: #AB0507;
-    -fx-fill: #AB0507;
+.text-area {
+    -fx-background-color: -dk-orange, -dk-panel;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 0;
+    -fx-control-inner-background: -dk-panel;
+    -fx-font-family: monospace;
     -fx-font-size: 12;
-    -fx-effect: dropshadow(gaussian, #E16600, 0, 0, 0, -1);
+    -fx-text-fill: -dk-text;
 }
 
-#scoreTable.red-style .column-header {
-    -fx-border-color: transparent #E16600 transparent transparent;
-    -fx-border-width: 0 1 0 0;
-}
-
-/* body cells: red text + orange vertical separators */
-#scoreTable.red-style .table-cell,
-#scoreTable.red-style .table-cell .text {
-    -fx-text-fill: #AB0507;
-    -fx-fill: #AB0507;
-    -fx-font-size: 8;
-    -fx-border-color: transparent #E16600 transparent transparent;
-    -fx-border-width: 0 1 0 0;
-}
-
-/* css - options page styling (append to src/main/resources/application.css)
-   Keeps the existing red/orange retro theme and Press Start 2P font. */
-
-/* Table: KeyBindingsTable (header + rows + cell buttons) */
-#KeyBindingsTable {
-    -fx-font-family: "Press Start 2P";
-    -fx-font-size: 12;
-    -fx-background-color: transparent;
-    -fx-control-inner-background: transparent;
-    -fx-border-color: #E16600;
-    -fx-border-width: 2;
+.text-area .content {
+    -fx-background-color: -dk-panel;
     -fx-padding: 6;
 }
 
-#KeyBindingsTable .column-header-background {
-    -fx-background-color: transparent;
-    -fx-border-width: 0 0 2 0; /* bottom divider */
-    -fx-border-color: transparent transparent #E16600 transparent;
-}
+/* ---------- combo box (language) ---------- */
 
-#KeyBindingsTable .column-header .label {
-    -fx-text-fill: #AB0507;
-    -fx-fill: #AB0507;
-    -fx-font-size: 12;
-    -fx-alignment: center;
-    -fx-padding: 6;
-    -fx-effect: dropshadow(gaussian, #E16600, 0, 0, 0, -1);
-}
-
-#KeyBindingsTable .table-row-cell,
-#KeyBindingsTable .table-cell {
-    -fx-alignment: center-left;
-    -fx-min-height: 28;
-    -fx-padding: 6 12;
-    -fx-text-fill: #AB0507;
-    -fx-fill: #AB0507;
-    -fx-font-size: 10;
-    -fx-border-color: transparent #E16600 transparent transparent;
-    -fx-border-width: 0 1 0 0;
-    -fx-background-color: transparent;
-}
-
-#KeyBindingsTable .table-cell .text {
-    -fx-alignment: center-left;
-}
-
-/* Placeholder when table is empty */
-#KeyBindingsTable .placeholder {
-    -fx-font-family: "Press Start 2P";
-    -fx-font-size: 14;
-    -fx-text-fill: #AB0507;
-}
-
-/* Buttons that appear inside table cells (Change Key) */
-#KeyBindingsTable .button {
-    -fx-background-color: linear-gradient(#E16600, #A70000);
-    -fx-text-fill: #E1E1FF;
-    -fx-font-family: "Press Start 2P";
-    -fx-font-size: 10;
-    -fx-padding: 6 10;
-    -fx-background-radius: 4;
-    -fx-effect: dropshadow(gaussian, #AB0507, 0, 0, 0, 2);
+.combo-box-base {
+    -fx-background-color: -dk-orange, -dk-panel;
+    -fx-background-insets: 0, 3;
+    -fx-background-radius: 0;
+    -fx-padding: 4 4 4 8;
     -fx-cursor: hand;
 }
 
-/* Hover/pressed states for in-table buttons */
-#KeyBindingsTable .button:hover {
-    -fx-background-color: linear-gradient(#FF7F29, #B00808);
-}
-#KeyBindingsTable .button:pressed {
-    -fx-translate-y: 1;
+.combo-box-base:focused,
+.combo-box-base:showing {
+    -fx-background-color: -dk-text, -dk-panel;
 }
 
-/* Overlay window where key is changed */
+.combo-box-base > .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: -dk-text;
+    -fx-padding: 8 12 8 4;
+}
+
+.combo-box-base > .arrow-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 0;
+    -fx-padding: 8 12 8 12;
+}
+
+.combo-box-base > .arrow-button > .arrow-button > .arrow,
+.combo-box-base > .arrow-button > .arrow {
+    -fx-background-color: -dk-orange-light;
+}
+
+.combo-box-popup > .list-view {
+    -fx-background-color: -dk-orange, -dk-panel;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 0;
+    -fx-padding: 2;
+}
+
+.combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell {
+    -fx-background-color: -dk-panel;
+    -fx-text-fill: -dk-text;
+    -fx-padding: 10 12 10 12;
+    -fx-font-size: 16;
+}
+
+.combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover,
+.combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
+    -fx-background-color: -dk-red;
+    -fx-text-fill: -dk-text;
+}
+
+/* ---------- tab pane ---------- */
+
+.tab-pane > .tab-header-area {
+    -fx-padding: 0;
+}
+
+.tab-pane > .tab-header-area > .tab-header-background {
+    -fx-background-color: transparent;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: -dk-panel;
+    -fx-background-insets: 0 4 0 0;
+    -fx-background-radius: 0;
+    -fx-padding: 12 20 10 20;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:hover {
+    -fx-background-color: -dk-panel-hover;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:selected {
+    -fx-background-color: -dk-orange, -dk-red;
+    -fx-background-insets: 0 4 0 0, 4 4 0 0;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab .tab-label {
+    -fx-text-fill: -dk-muted;
+    -fx-font-size: 16;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:hover .tab-label,
+.tab-pane > .tab-header-area > .headers-region > .tab:selected .tab-label {
+    -fx-text-fill: -dk-text;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:selected:hover {
+    -fx-background-color: -dk-orange-light, -dk-red-hover;
+}
+
+/* focus frame on the selected tab while the tab strip has the keyboard focus */
+.tab-pane:focused > .tab-header-area > .headers-region > .tab:selected .focus-indicator {
+    -fx-border-color: -dk-text;
+    -fx-border-width: 2;
+    -fx-border-insets: -6 -2 -4 -2;
+    -fx-border-radius: 0;
+}
+
+.tab-pane > .tab-content-area {
+    -fx-background-color: -dk-orange, -dk-bg;
+    -fx-background-insets: 0, 3;
+    -fx-padding: 3;
+}
+
+/* ---------- tables (leaderboard on the menu, key bindings in the options) ---------- */
+
+.dk-table {
+    -fx-background-color: -dk-orange, -dk-bg;
+    -fx-background-insets: 0, 3;
+    -fx-background-radius: 0;
+    -fx-padding: 3;
+    -fx-control-inner-background: -dk-bg;
+    -fx-control-inner-background-alt: -dk-panel;
+    -fx-table-cell-border-color: transparent;
+    -fx-selection-bar: -dk-red;
+    -fx-selection-bar-non-focused: -dk-red-pressed;
+    -fx-font-size: 12;
+    -fx-text-fill: -dk-text;
+}
+
+.dk-table .column-header-background {
+    -fx-background-color: -dk-panel;
+    -fx-border-color: transparent transparent -dk-orange transparent;
+    -fx-border-width: 0 0 2 0;
+}
+
+.dk-table .column-header,
+.dk-table .filler {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-size: 36;
+}
+
+.dk-table .column-header .label {
+    -fx-text-fill: -dk-orange;
+    -fx-font-size: 12;
+    -fx-padding: 0 12 0 12;
+    -fx-alignment: center-left;
+    -fx-wrap-text: true;
+    -fx-text-overrun: clip;
+}
+
+.dk-table .table-row-cell {
+    -fx-background-color: -dk-bg;
+    -fx-background-insets: 0;
+    -fx-cell-size: 32;
+    -fx-text-fill: -dk-text;
+}
+
+.dk-table .table-row-cell:odd {
+    -fx-background-color: -dk-panel;
+}
+
+.dk-table .table-row-cell:selected {
+    -fx-background-color: -dk-red;
+}
+
+.dk-table .table-cell {
+    -fx-text-fill: -dk-text;
+    -fx-alignment: center-left;
+    -fx-padding: 4 12 4 12;
+    -fx-border-color: transparent;
+}
+
+.dk-table .table-row-cell:selected .table-cell {
+    -fx-text-fill: -dk-text;
+}
+
+.dk-table .placeholder .label {
+    -fx-text-fill: -dk-muted;
+}
+
+.dk-table-large {
+    -fx-font-size: 16;
+}
+
+.dk-table-large .table-row-cell {
+    -fx-cell-size: 56;
+}
+
+.dk-table-large .column-header {
+    -fx-size: 44;
+}
+
+/* inside the tab pane the tab content frame is the table frame */
+.tab-pane .dk-table {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.dk-table-large .table-cell {
+    -fx-padding: 4 16 4 16;
+}
+
+/* empty filler rows below the last entry: no stripes */
+.dk-table .table-row-cell:empty {
+    -fx-background-color: -dk-bg;
+}
+
+.dk-table .table-row-cell:empty .table-cell {
+    -fx-border-color: transparent;
+}
+
+/* ---------- scroll bars ---------- */
+
+.scroll-bar {
+    -fx-background-color: -dk-panel;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: -dk-orange;
+    -fx-background-insets: 2;
+    -fx-background-radius: 0;
+}
+
+.scroll-bar .increment-button, .scroll-bar .decrement-button {
+    -fx-background-color: -dk-panel;
+    -fx-background-radius: 0;
+    -fx-padding: 4;
+}
+
+.scroll-bar .increment-arrow, .scroll-bar .decrement-arrow {
+    -fx-background-color: -dk-orange-light;
+    -fx-shape: " ";
+}
+
+/* ---------- options: key capture overlay ---------- */
+
 #ChangeKeyWindow {
-    -fx-background-color: rgba(34,34,34,0.95); /* near-black translucent */
-    -fx-border-color: #E16600;
-    -fx-border-width: 2;
-    -fx-background-radius: 8;
-    -fx-border-radius: 8;
-    -fx-padding: 12;
+    -fx-background-color: rgba(18, 18, 18, 0.88);
 }
 
-/* Labels & text field inside overlay */
-#ChangeKeyWindow .label,
-#ChangeKeyWindow .text {
-    -fx-font-family: "Press Start 2P";
-    -fx-text-fill: #E1E1FF;
+/* ---------- dialogs (alerts) - the stylesheet is attached by view.Dialogs ---------- */
+
+.dialog-pane {
+    -fx-min-width: 420;
+    -fx-background-color: -dk-orange, -dk-panel;
+    -fx-background-insets: 0, 3;
     -fx-font-size: 12;
 }
 
-#ChangeKeyWindow .text-field,
-#ChangeKeyWindow TextField {
-    -fx-background-color: #222;
-    -fx-text-fill: #E1E1FF;
-    -fx-border-color: #AB0507;
-    -fx-border-width: 2;
-    -fx-background-radius: 4;
-    -fx-border-radius: 4;
-    -fx-padding: 6;
+.dialog-pane > .header-panel {
+    -fx-background-color: transparent;
+    -fx-padding: 16 16 8 16;
 }
 
-/* Save button in overlay */
-#ChangeKeySaveButton {
-    -fx-background-color: linear-gradient(#E16600, #A70000);
-    -fx-text-fill: #E1E1FF;
-    -fx-font-family: "Press Start 2P";
+.dialog-pane > .header-panel .label {
+    -fx-text-fill: -dk-orange;
+    -fx-font-size: 16;
+    -fx-wrap-text: true;
+}
+
+.dialog-pane > .header-panel .graphic-container {
+    -fx-padding: 0 0 0 16;
+}
+
+.dialog-pane > .content.label {
+    -fx-text-fill: -dk-text;
     -fx-font-size: 12;
-    -fx-padding: 8 12;
-    -fx-background-radius: 6;
-    -fx-effect: dropshadow(gaussian, #AB0507, 0, 0, 0, 2);
+    -fx-padding: 8 16 16 16;
+    -fx-wrap-text: true;
 }
 
-/* TabPane adjustments to better match the theme */
-#SettingsTabs {
+.dialog-pane > .button-bar > .container {
     -fx-background-color: transparent;
-}
-#SettingsTabs .tab {
-    -fx-background-color: transparent;
-}
-#SettingsTabs .tab .label {
-    -fx-font-family: "Press Start 2P";
-    -fx-text-fill: #AB0507;
+    -fx-padding: 8 16 16 16;
 }
 
-/* small responsive tweak: keep overlay centered and above content */
-.stack-pane > .border-pane#ChangeKeyWindow {
-    -fx-translate-z: 1; /* ensure on top in some cases */
+.dialog-pane > .button-bar .button {
+    -fx-min-width: 96;
 }
 
-#GameOverContainer {
-    -fx-background-color: rgba(34,34,34,0.95); /* near-black translucent */
+.dialog-pane .details-button .label {
+    -fx-text-fill: -dk-text;
+    -fx-font-size: 12;
+}
+
+.dialog-pane .details-button .arrow-button .arrow {
+    -fx-background-color: -dk-orange-light;
 }

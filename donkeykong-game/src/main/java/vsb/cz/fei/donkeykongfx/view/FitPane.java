@@ -21,7 +21,7 @@ public class FitPane extends Region {
         this.designHeight = designHeight;
         content.getTransforms().add(scale);
         getChildren().add(content);
-        setStyle("-fx-background-color: #121212;");
+        getStyleClass().add("dk-screen");
     }
 
     @Override
